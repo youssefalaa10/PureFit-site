@@ -1,11 +1,11 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import Header from "@/components/ui/Header"
-import Footer from "@/components/ui/Footer"
+import type React from "react";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Header from "@/components/ui/Header";
+import Footer from "@/components/ui/Footer";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "PureFit",
@@ -14,22 +14,20 @@ export const metadata: Metadata = {
   icons: {
     icon: "/purefit-logo.ico",
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
       <body className={inter.className}>
         <Header />
-        <main className="pt-20">
-          {children}
-        </main>
+        <main>{children}</main>
         <Footer />
       </body>
     </html>
-  )
+  );
 }

@@ -1,21 +1,24 @@
-"use client"
+"use client";
 
-import { motion, useScroll, useTransform } from "framer-motion"
-import { useRef } from "react"
-import { ArrowRight, Play } from "lucide-react"
-import Image from "next/image"
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
+import { ArrowRight, Play } from "lucide-react";
+import Image from "next/image";
 
 export default function Hero() {
-  const ref = useRef(null)
+  const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
-  })
+  });
 
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
-  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0])
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
   return (
-    <section ref={ref} className="relative h-screen flex items-center justify-center overflow-hidden">
+    <section
+      ref={ref}
+      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16"
+    >
       {/* Background */}
       <motion.div style={{ y }} className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20 z-10" />
@@ -29,7 +32,10 @@ export default function Hero() {
       </motion.div>
 
       {/* Content */}
-      <motion.div style={{ opacity }} className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto">
+      <motion.div
+        style={{ opacity }}
+        className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto"
+      >
         <motion.h1
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -45,7 +51,8 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-xl md:text-2xl mb-8 text-gray-200"
         >
-          Transform your fitness journey with premium equipment, expert programs, and personalized nutrition guidance.
+          Transform your fitness journey with premium equipment, expert
+          programs, and personalized nutrition guidance.
         </motion.p>
 
         <motion.div
@@ -101,5 +108,5 @@ export default function Hero() {
         className="absolute bottom-20 left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl"
       />
     </section>
-  )
+  );
 }

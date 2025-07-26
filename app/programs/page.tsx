@@ -3,8 +3,8 @@
 import { motion } from "framer-motion"
 import { useState } from "react"
 import Image from "next/image"
-import Header from "@/components/ui/Header"
-import Footer from "@/components/ui/Footer"
+
+
 import { Clock, Users, Star, Filter } from "lucide-react"
 
 export default function Programs() {
@@ -88,11 +88,11 @@ export default function Programs() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-      <Header />
+ 
 
       <main className="pt-20">
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-br from-blue-900 to-purple-900 text-white">
+        <section className="py-20 bg-gradient-to-br from-gray-900 to-black text-white">
           <div className="container mx-auto px-4 text-center">
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
@@ -211,7 +211,7 @@ export default function Programs() {
         </section>
       </main>
 
-      <Footer />
+  
     </motion.div>
   )
 }

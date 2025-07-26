@@ -9,7 +9,6 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  Droplets,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,17 +46,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -67,162 +55,120 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-const drinkSchema = z.object({
-  name: z.string().min(1, "Drink name is required"),
+const exerciseSchema = z.object({
+  name: z.string().min(1, "Exercise name is required"),
   category: z.string().min(1, "Category is required"),
-  calories: z.string().min(1, "Calories is required"),
-  sugar: z.string().min(1, "Sugar content is required"),
-  caffeine: z.string().min(1, "Caffeine content is required"),
+  difficulty: z.string().min(1, "Difficulty is required"),
   description: z.string().min(1, "Description is required"),
-  servingSize: z.string().min(1, "Serving size is required"),
-  hydration: z.string().min(1, "Hydration level is required"),
+  duration: z.string().min(1, "Duration is required"),
+  calories: z.string().min(1, "Calories is required"),
 });
 
-type Drink = z.infer<typeof drinkSchema> & {
+type Exercise = z.infer<typeof exerciseSchema> & {
   id: string;
   createdAt: string;
 };
 
-const mockDrinks: Drink[] = [
+const mockExercises: Exercise[] = [
   {
     id: "1",
-    name: "Water",
-    category: "Hydration",
-    calories: "0",
-    sugar: "0",
-    caffeine: "0",
-    description: "Pure water for optimal hydration",
-    servingSize: "500ml",
-    hydration: "High",
+    name: "Push-ups",
+    category: "Strength",
+    difficulty: "Beginner",
+    description: "Classic bodyweight exercise for chest and triceps",
+    duration: "10 min",
+    calories: "50",
     createdAt: "2024-01-15",
   },
   {
     id: "2",
-    name: "Green Tea",
-    category: "Tea",
-    calories: "2",
-    sugar: "0",
-    caffeine: "25",
-    description: "Antioxidant-rich tea with moderate caffeine",
-    servingSize: "250ml",
-    hydration: "Medium",
+    name: "Squats",
+    category: "Strength",
+    difficulty: "Beginner",
+    description: "Lower body exercise targeting quads and glutes",
+    duration: "15 min",
+    calories: "75",
     createdAt: "2024-01-16",
   },
   {
     id: "3",
-    name: "Protein Shake",
-    category: "Supplement",
-    calories: "120",
-    sugar: "3",
-    caffeine: "0",
-    description: "Post-workout protein supplement",
-    servingSize: "300ml",
-    hydration: "Low",
+    name: "Plank",
+    category: "Core",
+    difficulty: "Intermediate",
+    description: "Isometric exercise for core strength",
+    duration: "5 min",
+    calories: "25",
     createdAt: "2024-01-17",
   },
 ];
 
-export default function DrinksPage() {
-  const [drinks, setDrinks] = useState<Drink[]>(mockDrinks);
+export default function ExercisesPage() {
+  const [exercises, setExercises] = useState<Exercise[]>(mockExercises);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingDrink, setEditingDrink] = useState<Drink | null>(null);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
 
-  const form = useForm<z.infer<typeof drinkSchema>>({
-    resolver: zodResolver(drinkSchema),
+  const form = useForm<z.infer<typeof exerciseSchema>>({
+    resolver: zodResolver(exerciseSchema),
     defaultValues: {
       name: "",
       category: "",
-      calories: "",
-      sugar: "",
-      caffeine: "",
+      difficulty: "",
       description: "",
-      servingSize: "",
-      hydration: "",
+      duration: "",
+      calories: "",
     },
   });
 
-  const filteredDrinks = drinks.filter((drink) => {
+  const filteredExercises = exercises.filter((exercise) => {
     const matchesSearch =
-      drink.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      drink.description.toLowerCase().includes(searchTerm.toLowerCase());
+      exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exercise.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
-      selectedCategory === "all" || drink.category === selectedCategory;
+      selectedCategory === "all" || exercise.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = [
-    "Hydration",
-    "Tea",
-    "Coffee",
-    "Juice",
-    "Smoothie",
-    "Supplement",
-    "Energy",
-    "Sports",
-  ];
+  const categories = ["Strength", "Cardio", "Core", "Flexibility", "Balance"];
 
-  const onSubmit = (values: z.infer<typeof drinkSchema>) => {
-    if (editingDrink) {
-      setDrinks(
-        drinks.map((drink) =>
-          drink.id === editingDrink.id ? { ...drink, ...values } : drink
+  const onSubmit = (values: z.infer<typeof exerciseSchema>) => {
+    if (editingExercise) {
+      setExercises(
+        exercises.map((ex) =>
+          ex.id === editingExercise.id ? { ...ex, ...values } : ex
         )
       );
-      setEditingDrink(null);
+      setEditingExercise(null);
     } else {
-      const newDrink: Drink = {
+      const newExercise: Exercise = {
         id: Date.now().toString(),
         ...values,
         createdAt: new Date().toISOString().split("T")[0],
       };
-      setDrinks([...drinks, newDrink]);
+      setExercises([...exercises, newExercise]);
     }
     form.reset();
     setIsAddDialogOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    setDrinks(drinks.filter((drink) => drink.id !== id));
+    setExercises(exercises.filter((ex) => ex.id !== id));
   };
 
-  const handleEdit = (drink: Drink) => {
-    setEditingDrink(drink);
-    form.reset(drink);
+  const handleEdit = (exercise: Exercise) => {
+    setEditingExercise(exercise);
+    form.reset(exercise);
     setIsAddDialogOpen(true);
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Hydration":
-        return "bg-blue-100 text-blue-800";
-      case "Tea":
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case "Beginner":
         return "bg-green-100 text-green-800";
-      case "Coffee":
-        return "bg-amber-100 text-amber-800";
-      case "Juice":
-        return "bg-orange-100 text-orange-800";
-      case "Smoothie":
-        return "bg-purple-100 text-purple-800";
-      case "Supplement":
-        return "bg-pink-100 text-pink-800";
-      case "Energy":
-        return "bg-red-100 text-red-800";
-      case "Sports":
-        return "bg-indigo-100 text-indigo-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getHydrationColor = (hydration: string) => {
-    switch (hydration) {
-      case "High":
-        return "bg-green-100 text-green-800";
-      case "Medium":
+      case "Intermediate":
         return "bg-yellow-100 text-yellow-800";
-      case "Low":
+      case "Advanced":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -238,27 +184,27 @@ export default function DrinksPage() {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Drinks</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Exercises</h1>
             <p className="text-muted-foreground">
-              Manage your beverage database and track your hydration
+              Manage your exercise library and track your workouts
             </p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button
                 onClick={() => {
-                  setEditingDrink(null);
+                  setEditingExercise(null);
                   form.reset();
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Drink
+                Add Exercise
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>
-                  {editingDrink ? "Edit Drink" : "Add New Drink"}
+                  {editingExercise ? "Edit Exercise" : "Add New Exercise"}
                 </DialogTitle>
               </DialogHeader>
               <Form {...form}>
@@ -271,9 +217,9 @@ export default function DrinksPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Drink Name</FormLabel>
+                        <FormLabel>Exercise Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter drink name" {...field} />
+                          <Input placeholder="Enter exercise name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -309,13 +255,27 @@ export default function DrinksPage() {
                     />
                     <FormField
                       control={form.control}
-                      name="servingSize"
+                      name="difficulty"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Serving Size</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 500ml" {...field} />
-                          </FormControl>
+                          <FormLabel>Difficulty</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select difficulty" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Beginner">Beginner</SelectItem>
+                              <SelectItem value="Intermediate">
+                                Intermediate
+                              </SelectItem>
+                              <SelectItem value="Advanced">Advanced</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -329,7 +289,7 @@ export default function DrinksPage() {
                         <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Enter drink description"
+                            placeholder="Enter exercise description"
                             {...field}
                           />
                         </FormControl>
@@ -340,66 +300,26 @@ export default function DrinksPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
+                      name="duration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duration</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., 10 min" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
                       name="calories"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Calories</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
+                            <Input placeholder="e.g., 50" {...field} />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sugar"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sugar (g)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="caffeine"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Caffeine (mg)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="hydration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hydration Level</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select level" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="High">High</SelectItem>
-                              <SelectItem value="Medium">Medium</SelectItem>
-                              <SelectItem value="Low">Low</SelectItem>
-                            </SelectContent>
-                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -414,7 +334,7 @@ export default function DrinksPage() {
                       Cancel
                     </Button>
                     <Button type="submit">
-                      {editingDrink ? "Update" : "Add"} Drink
+                      {editingExercise ? "Update" : "Add"} Exercise
                     </Button>
                   </div>
                 </form>
@@ -432,12 +352,12 @@ export default function DrinksPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Drink Database</CardTitle>
+              <CardTitle>Exercise Library</CardTitle>
               <div className="flex items-center space-x-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search drinks..."
+                    placeholder="Search exercises..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-8 w-64"
@@ -469,34 +389,32 @@ export default function DrinksPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Duration</TableHead>
                   <TableHead>Calories</TableHead>
-                  <TableHead>Sugar</TableHead>
-                  <TableHead>Caffeine</TableHead>
-                  <TableHead>Hydration</TableHead>
-                  <TableHead>Serving</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="w-[50px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDrinks.map((drink) => (
-                  <TableRow key={drink.id}>
-                    <TableCell className="font-medium">{drink.name}</TableCell>
+                {filteredExercises.map((exercise) => (
+                  <TableRow key={exercise.id}>
+                    <TableCell className="font-medium">
+                      {exercise.name}
+                    </TableCell>
                     <TableCell>
-                      <Badge className={getCategoryColor(drink.category)}>
-                        {drink.category}
+                      <Badge variant="secondary">{exercise.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={getDifficultyColor(exercise.difficulty)}
+                      >
+                        {exercise.difficulty}
                       </Badge>
                     </TableCell>
-                    <TableCell>{drink.calories} cal</TableCell>
-                    <TableCell>{drink.sugar}g</TableCell>
-                    <TableCell>{drink.caffeine}mg</TableCell>
-                    <TableCell>
-                      <Badge className={getHydrationColor(drink.hydration)}>
-                        {drink.hydration}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{drink.servingSize}</TableCell>
-                    <TableCell>{drink.createdAt}</TableCell>
+                    <TableCell>{exercise.duration}</TableCell>
+                    <TableCell>{exercise.calories} cal</TableCell>
+                    <TableCell>{exercise.createdAt}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -505,39 +423,19 @@ export default function DrinksPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(drink)}>
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(exercise)}
+                          >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem
-                                onSelect={(e) => e.preventDefault()}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Are you sure?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will
-                                  permanently delete the drink "{drink.name}".
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(drink.id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(exercise.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -545,9 +443,9 @@ export default function DrinksPage() {
                 ))}
               </TableBody>
             </Table>
-            {filteredDrinks.length === 0 && (
+            {filteredExercises.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No drinks found matching your criteria.
+                No exercises found matching your criteria.
               </div>
             )}
           </CardContent>

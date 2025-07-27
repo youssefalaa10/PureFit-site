@@ -1,8 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bell, Search, Sun, Moon, Menu } from "lucide-react";
+import { Bell, Search, Sun, Moon, Menu, LogOut, User } from "lucide-react";
 import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { logoutUser } from "@/lib/slices/authSlice";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface DashboardHeaderProps {
   onMobileMenuToggle?: () => void;
@@ -12,6 +21,8 @@ export default function DashboardHeader({
   onMobileMenuToggle,
 }: DashboardHeaderProps) {
   const [isDark, setIsDark] = useState(false);
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
 
   return (
     <motion.header
@@ -77,9 +88,30 @@ export default function DashboardHeader({
           </motion.button>
 
           {/* Avatar */}
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white font-medium text-sm">JD</span>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-8 h-8 rounded-full p-0">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-medium text-sm">
+                    {user?.email?.charAt(0).toUpperCase() || "U"}
+                  </span>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => dispatch(logoutUser())}
+                className="text-red-600"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </motion.header>

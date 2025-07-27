@@ -1,26 +1,42 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { motion } from "framer-motion"
-import { useState } from "react"
-import Link from "next/link"
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
+import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { loginUser, clearError } from "@/lib/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 export default function Login() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const { isLoading, error, isAuthenticated } = useAppSelector(
+    (state) => state.auth
+  );
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    if (error) {
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 2000)
-  }
+    e.preventDefault();
+    dispatch(loginUser({ email, password }));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-indigo-900 flex items-center justify-center p-4">
@@ -63,7 +79,9 @@ export default function Login() {
           <Link href="/" className="text-4xl font-bold text-white">
             Pure<span className="text-yellow-400">Fit</span>
           </Link>
-          <p className="text-gray-300 mt-2">Welcome back to your fitness journey</p>
+          <p className="text-gray-300 mt-2">
+            Welcome back to your fitness journey
+          </p>
         </div>
 
         {/* Login Form */}
@@ -76,7 +94,9 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Email Address</label>
+              <label className="block text-white text-sm font-medium mb-2">
+                Email Address
+              </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
@@ -92,7 +112,9 @@ export default function Login() {
 
             {/* Password Field */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Password</label>
+              <label className="block text-white text-sm font-medium mb-2">
+                Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
@@ -108,7 +130,11 @@ export default function Login() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -122,10 +148,20 @@ export default function Login() {
                 />
                 <span className="ml-2 text-sm text-gray-300">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
+              >
                 Forgot password?
               </Link>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
 
             {/* Login Button */}
             <motion.button
@@ -174,12 +210,15 @@ export default function Login() {
           {/* Sign Up Link */}
           <p className="text-center text-gray-300 mt-6">
             Don't have an account?{" "}
-            <Link href="/register" className="text-yellow-400 hover:text-yellow-300 font-medium transition-colors">
+            <Link
+              href="/register"
+              className="text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
+            >
               Sign up
             </Link>
           </p>
         </motion.div>
       </motion.div>
     </div>
-  )
+  );
 }

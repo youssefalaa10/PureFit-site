@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -9,7 +9,9 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  Droplets,
+  Clock,
+  Flame,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,166 +57,168 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import {
+  fetchCategories,
+  addCategory,
+  selectCategories,
+  selectCategoriesLoading,
+  selectCategoriesError,
+  selectIsAddingCategory,
+  selectAddCategoryError,
+  clearErrors,
+  clearAddError,
+  clearFetchError,
+  Category,
+} from "@/lib/slices/categoriesSlice";
 
 const categoryScheme = z.object({
-  name: z.string().min(1, "programName is required"),
-  category: z.string().min(1, "workoutName is required"),
-  calories: z.string().min(1, "timeOf_FullProgram is required"),
-  sugar: z.string().min(1, "level is required"),
-  caffeine: z.string().min(1, "burnedCalories is required"),
-  description: z.string().min(1, "exercises is required"),
-
+  thumbnail: z.string().min(1, "Thumbnail URL is required"),
+  programName: z.string().min(1, "Program name is required"),
+  workoutName: z.string().min(1, "Workout name is required"),
+  timeOf_FullProgram: z.string().min(1, "Time is required"),
+  level: z.string().min(1, "Level is required"),
+  burnedCalories: z.number().min(1, "Calories must be at least 1"),
+  exercises: z
+    .array(
+      z.object({
+        name: z.string().min(1, "Exercise name is required"),
+        duration: z.string().min(1, "Duration is required"),
+        caloriesBurned: z.number().min(1, "Calories burned must be at least 1"),
+      })
+    )
+    .min(1, "At least one exercise is required"),
 });
 
-type Drink = z.infer<typeof categoryScheme> & {
-  id: string;
-  createdAt: string;
-};
+type CategoryFormData = z.infer<typeof categoryScheme>;
 
-const mockDrinks: Drink[] = [
-  {
-    id: "1",
-    name: "Water",
-    category: "Hydration",
-    calories: "0",
-    sugar: "0",
-    caffeine: "0",
-    description: "Pure water for optimal hydration",
-
-
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Green Tea",
-    category: "Tea",
-    calories: "2",
-    sugar: "0",
-    caffeine: "25",
-    description: "Antioxidant-rich tea with moderate caffeine",
-
-    
-    createdAt: "2024-01-16",
-  },
-  {
-    id: "3",
-    name: "Protein Shake",
-    category: "Supplement",
-    calories: "120",
-    sugar: "3",
-    caffeine: "0",
-    description: "Post-workout protein supplement",
-
-  
-    createdAt: "2024-01-17",
-  },
-];
-
-export default function DrinksPage() {
-  const [drinks, setDrinks] = useState<Drink[]>(mockDrinks);
+export default function CategoriesPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedLevel, setSelectedLevel] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingDrink, setEditingDrink] = useState<Drink | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const form = useForm<z.infer<typeof categoryScheme>>({
+  const dispatch = useAppDispatch();
+  const categories = useAppSelector(selectCategories);
+  const isLoading = useAppSelector(selectCategoriesLoading);
+  const error = useAppSelector(selectCategoriesError);
+  const isAdding = useAppSelector(selectIsAddingCategory);
+  const addError = useAppSelector(selectAddCategoryError);
+
+  const form = useForm<CategoryFormData>({
     resolver: zodResolver(categoryScheme),
     defaultValues: {
-      name: "",
-      category: "",
-      calories: "",
-      sugar: "",
-      caffeine: "",
-      description: "",
- 
+      thumbnail: "",
+      programName: "",
+      workoutName: "",
+      timeOf_FullProgram: "",
+      level: "",
+      burnedCalories: 0,
+      exercises: [
+        {
+          name: "",
+          duration: "",
+          caloriesBurned: 0,
+        },
+      ],
     },
   });
 
-  const filteredDrinks = drinks.filter((drink) => {
+  useEffect(() => {
+    dispatch(fetchCategories());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      dispatch(clearFetchError());
+    }
+  }, [error, dispatch]);
+
+  useEffect(() => {
+    if (addError) {
+      dispatch(clearAddError());
+    }
+  }, [addError, dispatch]);
+
+  const filteredCategories = categories.filter((category) => {
     const matchesSearch =
-      drink.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      drink.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || drink.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+      category.programName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      category.workoutName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesLevel =
+      selectedLevel === "all" || category.level === selectedLevel;
+    return matchesSearch && matchesLevel;
   });
 
-  const categories = [
-    "Hydration",
-    "Tea",
-    "Coffee",
-    "Juice",
-    "Smoothie",
-    "Supplement",
-    "Energy",
-    "Sports",
-  ];
+  const levels = ["Beginner", "Intermediate", "Advanced"];
 
-  const onSubmit = (values: z.infer<typeof categoryScheme>) => {
-    if (editingDrink) {
-      setDrinks(
-        drinks.map((drink) =>
-          drink.id === editingDrink.id ? { ...drink, ...values } : drink
-        )
-      );
-      setEditingDrink(null);
+  const onSubmit = (values: CategoryFormData) => {
+    if (editingCategory) {
+      // Handle edit (not implemented in API yet)
+      console.log("Edit functionality not implemented");
     } else {
-      const newDrink: Drink = {
-        id: Date.now().toString(),
-        ...values,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setDrinks([...drinks, newDrink]);
+      dispatch(addCategory(values));
+      form.reset();
+      setIsAddDialogOpen(false);
     }
-    form.reset();
-    setIsAddDialogOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    setDrinks(drinks.filter((drink) => drink.id !== id));
+    // Handle delete (not implemented in API yet)
+    console.log("Delete functionality not implemented");
   };
 
-  const handleEdit = (drink: Drink) => {
-    setEditingDrink(drink);
-    form.reset(drink);
+  const handleEdit = (category: Category) => {
+    setEditingCategory(category);
+    form.reset({
+      thumbnail: category.thumbnail,
+      programName: category.programName,
+      workoutName: category.workoutName,
+      timeOf_FullProgram: category.timeOf_FullProgram,
+      level: category.level,
+      burnedCalories: category.burnedCalories,
+      exercises: category.exercises,
+    });
     setIsAddDialogOpen(true);
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Hydration":
-        return "bg-blue-100 text-blue-800";
-      case "Tea":
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case "Beginner":
         return "bg-green-100 text-green-800";
-      case "Coffee":
-        return "bg-amber-100 text-amber-800";
-      case "Juice":
-        return "bg-orange-100 text-orange-800";
-      case "Smoothie":
-        return "bg-purple-100 text-purple-800";
-      case "Supplement":
-        return "bg-pink-100 text-pink-800";
-      case "Energy":
+      case "Intermediate":
+        return "bg-yellow-100 text-yellow-800";
+      case "Advanced":
         return "bg-red-100 text-red-800";
-      case "Sports":
-        return "bg-indigo-100 text-indigo-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getHydrationColor = (hydration: string) => {
-    switch (hydration) {
-      case "High":
-        return "bg-green-100 text-green-800";
-      case "Medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "Low":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const addExercise = () => {
+    const currentExercises = form.getValues("exercises");
+    form.setValue("exercises", [
+      ...currentExercises,
+      { name: "", duration: "", caloriesBurned: 0 },
+    ]);
+  };
+
+  const removeExercise = (index: number) => {
+    const currentExercises = form.getValues("exercises");
+    if (currentExercises.length > 1) {
+      form.setValue(
+        "exercises",
+        currentExercises.filter((_, i) => i !== index)
+      );
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-yellow-400"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -225,27 +229,27 @@ export default function DrinksPage() {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Drinks</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
             <p className="text-muted-foreground">
-              Manage your beverage database and track your hydration
+              Manage your workout categories and programs
             </p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button
                 onClick={() => {
-                  setEditingDrink(null);
+                  setEditingCategory(null);
                   form.reset();
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Drink
+                Add Category
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {editingDrink ? "Edit Drink" : "Add New Drink"}
+                  {editingCategory ? "Edit Category" : "Add New Category"}
                 </DialogTitle>
               </DialogHeader>
               <Form {...form}>
@@ -255,12 +259,12 @@ export default function DrinksPage() {
                 >
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="thumbnail"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Drink Name</FormLabel>
+                        <FormLabel>Thumbnail URL</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter drink name" {...field} />
+                          <Input placeholder="Enter thumbnail URL" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -269,70 +273,46 @@ export default function DrinksPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="category"
+                      name="programName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>Program Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter program name"
+                              {...field}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <FormField
                       control={form.control}
-                      name="calories"
+                      name="workoutName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Serving Size</FormLabel>
+                          <FormLabel>Workout Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., 500ml" {...field} />
+                            <Input
+                              placeholder="Enter workout name"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter drink description"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
-                      name="calories"
+                      name="timeOf_FullProgram"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Calories</FormLabel>
+                          <FormLabel>Duration</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
+                            <Input placeholder="e.g., 40 minutes" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -340,38 +320,10 @@ export default function DrinksPage() {
                     />
                     <FormField
                       control={form.control}
-                      name="sugar"
+                      name="level"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Sugar (g)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="caffeine"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Caffeine (mg)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="calories"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hydration Level</FormLabel>
+                          <FormLabel>Level</FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
@@ -382,16 +334,129 @@ export default function DrinksPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="High">High</SelectItem>
-                              <SelectItem value="Medium">Medium</SelectItem>
-                              <SelectItem value="Low">Low</SelectItem>
+                              {levels.map((level) => (
+                                <SelectItem key={level} value={level}>
+                                  {level}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="burnedCalories"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Calories Burned</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="e.g., 400"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number(e.target.value))
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Exercises</FormLabel>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addExercise}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Exercise
+                      </Button>
+                    </div>
+
+                    {form.watch("exercises").map((_, index) => (
+                      <div
+                        key={index}
+                        className="border rounded-lg p-4 space-y-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">Exercise {index + 1}</h4>
+                          {form.watch("exercises").length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeExercise(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`exercises.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Name</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Exercise name"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`exercises.${index}.duration`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Duration</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="e.g., 10 minutes"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`exercises.${index}.caloriesBurned`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Calories</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="e.g., 100"
+                                    {...field}
+                                    onChange={(e) =>
+                                      field.onChange(Number(e.target.value))
+                                    }
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="flex justify-end space-x-2">
                     <Button
                       type="button"
@@ -400,8 +465,13 @@ export default function DrinksPage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">
-                      {editingDrink ? "Update" : "Add"} Drink
+                    <Button type="submit" disabled={isAdding}>
+                      {isAdding
+                        ? "Adding..."
+                        : editingCategory
+                        ? "Update"
+                        : "Add"}{" "}
+                      Category
                     </Button>
                   </div>
                 </form>
@@ -419,30 +489,27 @@ export default function DrinksPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Drink Database</CardTitle>
+              <CardTitle>Categories Database</CardTitle>
               <div className="flex items-center space-x-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search drinks..."
+                    placeholder="Search categories..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-8 w-64"
                   />
                 </div>
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                >
+                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                   <SelectTrigger className="w-40">
                     <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Category" />
+                    <SelectValue placeholder="Level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    <SelectItem value="all">All Levels</SelectItem>
+                    {levels.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -451,39 +518,53 @@ export default function DrinksPage() {
             </div>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600">{error}</p>
+              </div>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
+                  <TableHead>Program</TableHead>
+                  <TableHead>Workout</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Level</TableHead>
                   <TableHead>Calories</TableHead>
-                  <TableHead>Sugar</TableHead>
-                  <TableHead>Caffeine</TableHead>
-                  <TableHead>Hydration</TableHead>
-                  <TableHead>Serving</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Exercises</TableHead>
                   <TableHead className="w-[50px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDrinks.map((drink) => (
-                  <TableRow key={drink.id}>
-                    <TableCell className="font-medium">{drink.name}</TableCell>
+                {filteredCategories.map((category) => (
+                  <TableRow key={category.id}>
+                    <TableCell className="font-medium">
+                      {category.programName}
+                    </TableCell>
+                    <TableCell>{category.workoutName}</TableCell>
                     <TableCell>
-                      <Badge className={getCategoryColor(drink.category)}>
-                        {drink.category}
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                        {category.timeOf_FullProgram}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getLevelColor(category.level)}>
+                        {category.level}
                       </Badge>
                     </TableCell>
-                    <TableCell>{drink.calories} cal</TableCell>
-                    <TableCell>{drink.sugar}g</TableCell>
-                    <TableCell>{drink.caffeine}mg</TableCell>
                     <TableCell>
-                      <Badge className={getHydrationColor(drink.calories)}>
-                        {drink.calories}
-                      </Badge>
+                      <div className="flex items-center">
+                        <Flame className="mr-2 h-4 w-4 text-orange-500" />
+                        {category.burnedCalories} cal
+                      </div>
                     </TableCell>
-                    <TableCell>{drink.calories}</TableCell>
-                    <TableCell>{drink.createdAt}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Target className="mr-2 h-4 w-4 text-blue-500" />
+                        {category.exercises.length} exercises
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -492,12 +573,14 @@ export default function DrinksPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(drink)}>
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(category)}
+                          >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleDelete(drink.id)}
+                            onClick={() => handleDelete(category.id!)}
                             className="text-red-600"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -510,9 +593,9 @@ export default function DrinksPage() {
                 ))}
               </TableBody>
             </Table>
-            {filteredDrinks.length === 0 && (
+            {filteredCategories.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No drinks found matching your criteria.
+                No categories found matching your criteria.
               </div>
             )}
           </CardContent>

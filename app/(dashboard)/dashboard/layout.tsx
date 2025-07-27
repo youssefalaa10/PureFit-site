@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Sidebar from "@/components/ui/Sidebar";
 import DashboardHeader from "@/components/ui/DashboardHeader";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function DashboardLayout({
   children,
@@ -34,19 +35,21 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader onMobileMenuToggle={handleMobileMenuToggle} />
-        <motion.main
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex-1 overflow-auto p-4 md:p-6"
-        >
-          {children}
-        </motion.main>
+    <ProtectedRoute>
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <DashboardHeader onMobileMenuToggle={handleMobileMenuToggle} />
+          <motion.main
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex-1 overflow-auto p-4 md:p-6"
+          >
+            {children}
+          </motion.main>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

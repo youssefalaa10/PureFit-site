@@ -6,20 +6,23 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
-import { loginUser, clearError } from "@/lib/slices/authSlice";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
-export default function Login() {
+export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [error, setError] = useState("");
 
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { isLoading, error, isAuthenticated } = useAppSelector(
-    (state) => state.auth
-  );
+  const { isLoading, isAuthenticated } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -27,15 +30,27 @@ export default function Login() {
     }
   }, [isAuthenticated, router]);
 
-  useEffect(() => {
-    if (error) {
-      dispatch(clearError());
-    }
-  }, [error, dispatch]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(loginUser({ email, password }));
+    setError("");
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    // TODO: Implement registration logic
+    console.log("Registration functionality not implemented yet");
+    setError("Registration functionality not implemented yet");
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -79,12 +94,10 @@ export default function Login() {
           <Link href="/" className="text-4xl font-bold text-white">
             Pure<span className="text-yellow-400">Fit</span>
           </Link>
-          <p className="text-gray-300 mt-2">
-            Welcome back to your fitness journey
-          </p>
+          <p className="text-gray-300 mt-2">Join us on your fitness journey</p>
         </div>
 
-        {/* Login Form */}
+        {/* Register Form */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -92,6 +105,24 @@ export default function Login() {
           className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20"
         >
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Name Field */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Full Name
+              </label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+            </div>
+
             {/* Email Field */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
@@ -101,8 +132,8 @@ export default function Login() {
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
                   placeholder="Enter your email"
                   required
@@ -119,8 +150,10 @@ export default function Login() {
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={(e) =>
+                    handleInputChange("password", e.target.value)
+                  }
                   className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
                   placeholder="Enter your password"
                   required
@@ -139,21 +172,35 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-yellow-400 bg-white/10 border-white/20 rounded focus:ring-yellow-400 focus:ring-2"
-                />
-                <span className="ml-2 text-sm text-gray-300">Remember me</span>
+            {/* Confirm Password Field */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Confirm Password
               </label>
-              <Link
-                href="/forgot-password"
-                className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors"
-              >
-                Forgot password?
-              </Link>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={(e) =>
+                    handleInputChange("confirmPassword", e.target.value)
+                  }
+                  className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+                  placeholder="Confirm your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -163,7 +210,7 @@ export default function Login() {
               </div>
             )}
 
-            {/* Login Button */}
+            {/* Register Button */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -175,7 +222,7 @@ export default function Login() {
                 <div className="w-6 h-6 border-2 border-black/20 border-t-black rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>Create Account</span>
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -207,14 +254,14 @@ export default function Login() {
             </motion.button>
           </div>
 
-          {/* Sign Up Link */}
+          {/* Sign In Link */}
           <p className="text-center text-gray-300 mt-6">
-            Don't have an account?{" "}
+            Already have an account?{" "}
             <Link
-              href="/register"
+              href="/login"
               className="text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
             >
-              Sign up
+              Sign in
             </Link>
           </p>
         </motion.div>

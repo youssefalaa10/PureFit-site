@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 
@@ -10,16 +11,50 @@ interface LayoutProviderProps {
 
 export default function LayoutProvider({ children }: LayoutProviderProps) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const [currentPath, setCurrentPath] = useState("");
+
   const isAuthPage =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/register") ||
-    pathname.startsWith("/signup");
+    currentPath.startsWith("/login") ||
+    currentPath.startsWith("/register") ||
+    currentPath.startsWith("/signup");
+
+  const isDashboardPage = currentPath.startsWith("/dashboard");
+
+  const shouldHideHeaderFooter = isAuthPage || isDashboardPage;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    setCurrentPath(pathname);
+  }, [pathname]);
+
+  // Prevent hydration mismatch and ensure stable rendering
+  if (!mounted) {
+    return (
+      <div className="min-h-screen">
+        <div className="hidden">
+          <Header />
+        </div>
+        <main>{children}</main>
+        <div className="hidden">
+          <Footer />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {!isAuthPage && <Header />}
+    <div className="min-h-screen">
+      <div className={shouldHideHeaderFooter ? "hidden" : "block"}>
+        <Header />
+      </div>
       <main>{children}</main>
-      {!isAuthPage && <Footer />}
-    </>
+      <div className={shouldHideHeaderFooter ? "hidden" : "block"}>
+        <Footer />
+      </div>
+    </div>
   );
 }

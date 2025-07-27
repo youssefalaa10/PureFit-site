@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   ChevronLeft,
+  List,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -40,10 +41,10 @@ export default function Sidebar() {
 
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Categories", href: "/dashboard/categories", icon: List },
     { name: "Exercises", href: "/dashboard/exercises", icon: Dumbbell },
     { name: "Foods", href: "/dashboard/foods", icon: Apple },
     { name: "Drinks", href: "/dashboard/drinks", icon: Coffee },
-
     { name: "Profile", href: "/dashboard/profile", icon: User },
   ];
 

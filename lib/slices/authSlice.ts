@@ -27,7 +27,16 @@ export const loginUser = createAsyncThunk(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
+        mode: "cors", // Explicitly set CORS mode
+        credentials: "omit", // Don't send cookies
       });
+
+      // Check if response is a redirect
+      if (response.redirected) {
+        return rejectWithValue(
+          "Server redirected the request. This is not allowed for CORS preflight requests."
+        );
+      }
 
       const data = await response.json();
 
@@ -40,8 +49,17 @@ export const loginUser = createAsyncThunk(
       localStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, "true");
 
       return data;
-    } catch (error) {
-      return rejectWithValue("Network error occurred");
+    } catch (error: any) {
+      // Enhanced error handling for CORS issues
+      if (
+        error.name === "TypeError" &&
+        error.message.includes("Failed to fetch")
+      ) {
+        return rejectWithValue(
+          "CORS error: Unable to reach the server. The server may not be configured to handle cross-origin requests properly."
+        );
+      }
+      return rejectWithValue(`Network error: ${error.message}`);
     }
   }
 );

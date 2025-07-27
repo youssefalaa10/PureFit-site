@@ -11,13 +11,13 @@ export interface Exercise {
 
 export interface Category {
   id?: string;
-  thumbnail: string;
-  programName: string;
-  workoutName: string;
-  timeOf_FullProgram: string;
-  level: string;
-  burnedCalories: number;
-  exercises: Exercise[];
+  thumbnail?: string;
+  programName?: string;
+  workoutName?: string;
+  timeOf_FullProgram?: string;
+  level?: string;
+  burnedCalories?: number;
+  exercises?: Exercise[];
   createdAt?: string;
 }
 
@@ -65,7 +65,15 @@ export const fetchCategories = createAsyncThunk(
 export const addCategory = createAsyncThunk(
   "categories/addCategory",
   async (
-    categoryData: Omit<Category, "id" | "createdAt">,
+    categoryData: {
+      thumbnail: string;
+      programName: string;
+      workoutName: string;
+      timeOf_FullProgram: string;
+      level: string;
+      burnedCalories: number;
+      exercises: Exercise[];
+    },
     { rejectWithValue }
   ) => {
     try {

@@ -1,10 +1,10 @@
 // API Configuration
 export const API_BASE_URL = "https://fit-pro-app.glitch.me";
 
-// API Endpoints
+// API Endpoints - Using local proxy routes to avoid CORS issues
 export const API_ENDPOINTS = {
-  LOGIN: `${API_BASE_URL}/auth/login`,
-  CATEGORIES: `${API_BASE_URL}/api/categories`,
+  LOGIN: "/api/auth/login", // Local proxy route
+  CATEGORIES: "/api/categories", // Local proxy route
 } as const;
 
 // Local Storage Keys

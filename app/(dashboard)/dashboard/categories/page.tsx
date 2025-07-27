@@ -142,8 +142,12 @@ export default function CategoriesPage() {
 
   const filteredCategories = categories.filter((category) => {
     const matchesSearch =
-      category.programName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.workoutName.toLowerCase().includes(searchTerm.toLowerCase());
+      (category.programName?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (category.workoutName?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      );
     const matchesLevel =
       selectedLevel === "all" || category.level === selectedLevel;
     return matchesSearch && matchesLevel;
@@ -170,13 +174,13 @@ export default function CategoriesPage() {
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
     form.reset({
-      thumbnail: category.thumbnail,
-      programName: category.programName,
-      workoutName: category.workoutName,
-      timeOf_FullProgram: category.timeOf_FullProgram,
-      level: category.level,
-      burnedCalories: category.burnedCalories,
-      exercises: category.exercises,
+      thumbnail: category.thumbnail || "",
+      programName: category.programName || "",
+      workoutName: category.workoutName || "",
+      timeOf_FullProgram: category.timeOf_FullProgram || "",
+      level: category.level || "Beginner",
+      burnedCalories: category.burnedCalories || 0,
+      exercises: category.exercises || [],
     });
     setIsAddDialogOpen(true);
   };
@@ -539,30 +543,32 @@ export default function CategoriesPage() {
                 {filteredCategories.map((category) => (
                   <TableRow key={category.id}>
                     <TableCell className="font-medium">
-                      {category.programName}
+                      {category.programName || "N/A"}
                     </TableCell>
-                    <TableCell>{category.workoutName}</TableCell>
+                    <TableCell>{category.workoutName || "N/A"}</TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {category.timeOf_FullProgram}
+                        {category.timeOf_FullProgram || "N/A"}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getLevelColor(category.level)}>
-                        {category.level}
+                      <Badge
+                        className={getLevelColor(category.level || "Unknown")}
+                      >
+                        {category.level || "Unknown"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <Flame className="mr-2 h-4 w-4 text-orange-500" />
-                        {category.burnedCalories} cal
+                        {category.burnedCalories || 0} cal
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <Target className="mr-2 h-4 w-4 text-blue-500" />
-                        {category.exercises.length} exercises
+                        {category.exercises?.length || 0} exercises
                       </div>
                     </TableCell>
                     <TableCell>

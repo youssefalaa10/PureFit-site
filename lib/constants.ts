@@ -33,6 +33,8 @@ export const API_ENDPOINTS = {
   CATEGORIES: "/api/categories",
   EXERCISES: "/api/exercises",
   EXERCISES_BY_CATEGORY: "/api/exercises",
+  FOODS: "/api/foods",
+  DRINKS: "/api/drinks",
 } as const;
 
 // Local Storage Keys

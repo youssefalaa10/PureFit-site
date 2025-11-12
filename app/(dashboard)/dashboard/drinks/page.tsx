@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -24,199 +26,54 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-
-const drinkSchema = z.object({
-  name: z.string().min(1, "Drink name is required"),
-  category: z.string().min(1, "Category is required"),
-  calories: z.string().min(1, "Calories is required"),
-  sugar: z.string().min(1, "Sugar content is required"),
-  caffeine: z.string().min(1, "Caffeine content is required"),
-  description: z.string().min(1, "Description is required"),
-  servingSize: z.string().min(1, "Serving size is required"),
-  hydration: z.string().min(1, "Hydration level is required"),
-});
-
-type Drink = z.infer<typeof drinkSchema> & {
-  id: string;
-  createdAt: string;
-};
-
-const mockDrinks: Drink[] = [
-  {
-    id: "1",
-    name: "Water",
-    category: "Hydration",
-    calories: "0",
-    sugar: "0",
-    caffeine: "0",
-    description: "Pure water for optimal hydration",
-    servingSize: "500ml",
-    hydration: "High",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Green Tea",
-    category: "Tea",
-    calories: "2",
-    sugar: "0",
-    caffeine: "25",
-    description: "Antioxidant-rich tea with moderate caffeine",
-    servingSize: "250ml",
-    hydration: "Medium",
-    createdAt: "2024-01-16",
-  },
-  {
-    id: "3",
-    name: "Protein Shake",
-    category: "Supplement",
-    calories: "120",
-    sugar: "3",
-    caffeine: "0",
-    description: "Post-workout protein supplement",
-    servingSize: "300ml",
-    hydration: "Low",
-    createdAt: "2024-01-17",
-  },
-];
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import {
+  fetchDrinks,
+  selectDrinks,
+  selectDrinksLoading,
+  selectDrinksError,
+  type Drink,
+} from "@/lib/slices/drinksSlice";
 
 export default function DrinksPage() {
-  const [drinks, setDrinks] = useState<Drink[]>(mockDrinks);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingDrink, setEditingDrink] = useState<Drink | null>(null);
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const drinks = useAppSelector(selectDrinks);
+  const isLoading = useAppSelector(selectDrinksLoading);
+  const error = useAppSelector(selectDrinksError);
 
-  const form = useForm<z.infer<typeof drinkSchema>>({
-    resolver: zodResolver(drinkSchema),
-    defaultValues: {
-      name: "",
-      category: "",
-      calories: "",
-      sugar: "",
-      caffeine: "",
-      description: "",
-      servingSize: "",
-      hydration: "",
-    },
-  });
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    dispatch(fetchDrinks());
+  }, [dispatch]);
 
   const filteredDrinks = drinks.filter((drink) => {
-    const matchesSearch =
-      drink.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      drink.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || drink.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesSearch = drink.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
-  const categories = [
-    "Hydration",
-    "Tea",
-    "Coffee",
-    "Juice",
-    "Smoothie",
-    "Supplement",
-    "Energy",
-    "Sports",
-  ];
-
-  const onSubmit = (values: z.infer<typeof drinkSchema>) => {
-    if (editingDrink) {
-      setDrinks(
-        drinks.map((drink) =>
-          drink.id === editingDrink.id ? { ...drink, ...values } : drink
-        )
-      );
-      setEditingDrink(null);
-    } else {
-      const newDrink: Drink = {
-        id: Date.now().toString(),
-        ...values,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setDrinks([...drinks, newDrink]);
-    }
-    form.reset();
-    setIsAddDialogOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    setDrinks(drinks.filter((drink) => drink.id !== id));
-  };
-
-  const handleEdit = (drink: Drink) => {
-    setEditingDrink(drink);
-    form.reset(drink);
-    setIsAddDialogOpen(true);
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Hydration":
-        return "bg-blue-100 text-blue-800";
-      case "Tea":
-        return "bg-green-100 text-green-800";
-      case "Coffee":
-        return "bg-amber-100 text-amber-800";
-      case "Juice":
-        return "bg-orange-100 text-orange-800";
-      case "Smoothie":
-        return "bg-purple-100 text-purple-800";
-      case "Supplement":
-        return "bg-pink-100 text-pink-800";
-      case "Energy":
-        return "bg-red-100 text-red-800";
-      case "Sports":
-        return "bg-indigo-100 text-indigo-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const handleDrinkClick = (drink: Drink) => {
+    const drinkId = drink._id;
+    if (drinkId) {
+      router.push(`/dashboard/drinks/${drinkId}`);
     }
   };
 
-  const getHydrationColor = (hydration: string) => {
-    switch (hydration) {
-      case "High":
-        return "bg-green-100 text-green-800";
-      case "Medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "Low":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-yellow-400"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -232,186 +89,24 @@ export default function DrinksPage() {
               Manage your beverage database and track your hydration
             </p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingDrink(null);
-                  form.reset();
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Drink
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingDrink ? "Edit Drink" : "Add New Drink"}
-                </DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Drink Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter drink name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="servingSize"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Serving Size</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 500ml" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter drink description"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="calories"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Calories</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sugar"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sugar (g)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="caffeine"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Caffeine (mg)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="hydration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hydration Level</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select level" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="High">High</SelectItem>
-                              <SelectItem value="Medium">Medium</SelectItem>
-                              <SelectItem value="Low">Low</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsAddDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit">
-                      {editingDrink ? "Update" : "Add"} Drink
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/drinks/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Drink
+            </Button>
+          </Link>
         </div>
       </motion.div>
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border border-red-200 rounded-md p-4"
+        >
+          <p className="text-red-800">{error}</p>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -432,23 +127,6 @@ export default function DrinksPage() {
                     className="pl-8 w-64"
                   />
                 </div>
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                >
-                  <SelectTrigger className="w-40">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardHeader>
@@ -456,37 +134,45 @@ export default function DrinksPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
                   <TableHead>Calories</TableHead>
-                  <TableHead>Sugar</TableHead>
-                  <TableHead>Caffeine</TableHead>
-                  <TableHead>Hydration</TableHead>
-                  <TableHead>Serving</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Protein</TableHead>
+                  <TableHead>Fats</TableHead>
                   <TableHead className="w-[50px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDrinks.map((drink) => (
-                  <TableRow key={drink.id}>
+                  <TableRow
+                    key={drink._id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleDrinkClick(drink)}
+                  >
+                    <TableCell>
+                      {drink.image ? (
+                        <div className="relative w-16 h-16 rounded overflow-hidden bg-muted">
+                          <img
+                            src={drink.image}
+                            alt={drink.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display =
+                                "none";
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">
+                          <Droplets className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{drink.name}</TableCell>
-                    <TableCell>
-                      <Badge className={getCategoryColor(drink.category)}>
-                        {drink.category}
-                      </Badge>
-                    </TableCell>
                     <TableCell>{drink.calories} cal</TableCell>
-                    <TableCell>{drink.sugar}g</TableCell>
-                    <TableCell>{drink.caffeine}mg</TableCell>
-                    <TableCell>
-                      <Badge className={getHydrationColor(drink.hydration)}>
-                        {drink.hydration}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{drink.servingSize}</TableCell>
-                    <TableCell>{drink.createdAt}</TableCell>
-                    <TableCell>
+                    <TableCell>{drink.protein}g</TableCell>
+                    <TableCell>{drink.fats || 0}g</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -494,16 +180,14 @@ export default function DrinksPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(drink)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleDelete(drink.id)}
-                            className="text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDrinkClick(drink);
+                            }}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            <Edit className="mr-2 h-4 w-4" />
+                            View/Edit
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -514,7 +198,9 @@ export default function DrinksPage() {
             </Table>
             {filteredDrinks.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No drinks found matching your criteria.
+                {searchTerm
+                  ? "No drinks found matching your search."
+                  : "No drinks found. Add your first drink to get started."}
               </div>
             )}
           </CardContent>

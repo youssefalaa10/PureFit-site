@@ -5,6 +5,8 @@ export const API_BASE_URL = "https://fit-pro-app.glitch.me";
 export const API_ENDPOINTS = {
   LOGIN: "/api/auth/login", // Local proxy route
   CATEGORIES: "/api/categories", // Local proxy route
+  EXERCISES: "/api/exercises", // Local proxy route
+  EXERCISES_BY_CATEGORY: "/api/exercises", // Local proxy route for getting exercises by category
 } as const;
 
 // Local Storage Keys

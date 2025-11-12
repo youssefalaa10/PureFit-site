@@ -21,7 +21,16 @@ This project implements Redux Toolkit for state management with authentication a
 - **Form validation** using Zod schema
 - **Dynamic exercise management** (add/remove exercises)
 
-### 3. Redux Toolkit Setup
+### 3. Exercises Management
+
+- **Fetch exercises by category** from: `https://fit-pro-app.glitch.me/api/exercises/{categoryId}` (GET)
+- **Add new exercises** with authentication token (POST)
+- **Edit existing exercises** with authentication token (PUT)
+- **Real-time state updates** with Redux
+- **Form validation** using Zod schema
+- **Advanced exercise data structure** with equipment, target muscles, secondary muscles, and instructions
+
+### 4. Redux Toolkit Setup
 
 - **Store configuration** with multiple slices
 - **Async thunks** for API calls
@@ -37,7 +46,8 @@ lib/
 ├── constants.ts             # API endpoints and configuration
 └── slices/
     ├── authSlice.ts         # Authentication state management
-    └── categoriesSlice.ts   # Categories state management
+    ├── categoriesSlice.ts   # Categories state management
+    └── exercisesSlice.ts    # Exercises state management
 
 components/
 ├── providers/
@@ -51,8 +61,10 @@ app/
 └── (dashboard)/
     └── dashboard/
         ├── layout.tsx       # Protected dashboard layout
-        └── categories/
-            └── page.tsx     # Categories management page
+        ├── categories/
+        │   └── page.tsx     # Categories management page
+        └── exercises/
+            └── page.tsx     # Exercises management page
 ```
 
 ## API Integration
@@ -75,7 +87,7 @@ Response: {
 
 ### Categories
 
-```typescript
+````typescript
 // Get all categories
 GET https://fit-pro-app.glitch.me/api/categories
 
@@ -98,10 +110,70 @@ Body: {
       "duration": "10 minutes",
       "caloriesBurned": 100
     }
+  ]
+}
+
+### Exercises
+
+```typescript
+// Get exercises by category
+GET https://fit-pro-app.glitch.me/api/exercises/{categoryId}
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+}
+
+// Add exercise
+POST https://fit-pro-app.glitch.me/api/exercises
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+}
+Body: {
+  "_id": "6708a58f2478328aff020f9blol",
+  "categoryId": "6708a58f2478328aff020f9b",
+  "equipment": "leverage machine",
+  "gifUrl": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExYmJocGRhZXdvZmMwNmVsbGp3aWVlZGRlZG9ycXBiNzBlcGo5Z2V6bSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wcKI3jM0p6lCW4GDDG/giphy.gif",
+  "id": 9,
+  "name": "assisted chest dip (kneeling)",
+  "target": "pectorals",
+  "secondaryMuscles": ["triceps", "shoulders"],
+  "instructions": [
+    "Adjust the machine to your desired height and secure your knees on the pad.",
+    "Grasp the handles with your palms facing down and your arms fully extended.",
+    "Lower your body by bending your elbows until your upper arms are parallel to the floor.",
+    "Pause for a moment, then push yourself back up to the starting position.",
+    "Repeat for the desired number of repetitions."
+  ]
+}
+
+// Edit exercise
+PUT https://fit-pro-app.glitch.me/api/exercises/{exerciseId}
+Headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+}
+Body: {
+  "id": "670a3e687a18d554de9721af",
+  "equipment": "bodyy",
+  "gifUrl": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDQxemlobTdkMWlwNHhqZGJ5OGcxMzhwb3dwZXNhNjJlZGtpM3dqeiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/7iqTgBGL31mKNjuydy/giphy.gif",
+  "id": 3294,
+  "name": "archer push up",
+  "target": "pectorals",
+  "secondaryMuscles": ["triceps", "shoulders", "core"],
+  "instructions": [
+    "Start in a push-up position with your hands slightly wider than shoulder-width apart.",
+    "Extend one arm straight out to the side, parallel to the ground.",
+    "Lower your body by bending your elbows, keeping your back straight and core engaged.",
+    "Push back up to the starting position.",
+    "Repeat on the other side, extending the opposite arm out to the side.",
+    "Continue alternating sides for the desired number of repetitions."
+  ]
+}
     // ... more exercises
   ]
 }
-```
+````
 
 ## Key Features
 

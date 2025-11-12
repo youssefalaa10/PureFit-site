@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Plus,
   Search,
@@ -9,6 +10,9 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
+  Target,
+  Dumbbell,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,126 +58,184 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import {
+  fetchExercises,
+  addExercise,
+  editExercise,
+  clearErrors,
+  selectExercises,
+  selectExercisesLoading,
+  selectExercisesError,
+  selectIsAddingExercise,
+  selectAddExerciseError,
+  selectIsEditingExercise,
+  selectEditExerciseError,
+  type Exercise,
+} from "@/lib/slices/exercisesSlice";
+import { AppDispatch } from "@/lib/store";
 
 const exerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required"),
-  category: z.string().min(1, "Category is required"),
-  difficulty: z.string().min(1, "Difficulty is required"),
-  description: z.string().min(1, "Description is required"),
-  duration: z.string().min(1, "Duration is required"),
-  calories: z.string().min(1, "Calories is required"),
+  equipment: z.string().min(1, "Equipment is required"),
+  target: z.string().min(1, "Target muscle is required"),
+  gifUrl: z.string().url("Must be a valid URL"),
+  secondaryMuscles: z
+    .array(z.string())
+    .min(1, "At least one secondary muscle is required"),
+  instructions: z
+    .array(z.string())
+    .min(1, "At least one instruction is required"),
 });
 
-type Exercise = z.infer<typeof exerciseSchema> & {
-  id: string;
-  createdAt: string;
-};
+type ExerciseFormData = z.infer<typeof exerciseSchema>;
 
-const mockExercises: Exercise[] = [
-  {
-    id: "1",
-    name: "Push-ups",
-    category: "Strength",
-    difficulty: "Beginner",
-    description: "Classic bodyweight exercise for chest and triceps",
-    duration: "10 min",
-    calories: "50",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Squats",
-    category: "Strength",
-    difficulty: "Beginner",
-    description: "Lower body exercise targeting quads and glutes",
-    duration: "15 min",
-    calories: "75",
-    createdAt: "2024-01-16",
-  },
-  {
-    id: "3",
-    name: "Plank",
-    category: "Core",
-    difficulty: "Intermediate",
-    description: "Isometric exercise for core strength",
-    duration: "5 min",
-    calories: "25",
-    createdAt: "2024-01-17",
-  },
-];
+// Mock category ID for now - in a real app, this would come from the category selection
+const MOCK_CATEGORY_ID = "670a36f16e468473ea13f948";
 
 export default function ExercisesPage() {
-  const [exercises, setExercises] = useState<Exercise[]>(mockExercises);
+  const dispatch = useDispatch<AppDispatch>();
+  const exercises = useSelector(selectExercises);
+  const isLoading = useSelector(selectExercisesLoading);
+  const error = useSelector(selectExercisesError);
+  const isAdding = useSelector(selectIsAddingExercise);
+  const addError = useSelector(selectAddExerciseError);
+  const isEditing = useSelector(selectIsEditingExercise);
+  const editError = useSelector(selectEditExerciseError);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedTarget, setSelectedTarget] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [secondaryMusclesInput, setSecondaryMusclesInput] = useState("");
+  const [instructionsInput, setInstructionsInput] = useState("");
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  const form = useForm<z.infer<typeof exerciseSchema>>({
+  const form = useForm<ExerciseFormData>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
       name: "",
-      category: "",
-      difficulty: "",
-      description: "",
-      duration: "",
-      calories: "",
+      equipment: "",
+      target: "",
+      gifUrl: "",
+      secondaryMuscles: [],
+      instructions: [],
     },
   });
+
+  useEffect(() => {
+    dispatch(fetchExercises(MOCK_CATEGORY_ID));
+  }, [dispatch]);
+
+  // Clear errors when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearErrors());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (editingExercise) {
+      form.reset({
+        name: editingExercise.name,
+        equipment: editingExercise.equipment,
+        target: editingExercise.target,
+        gifUrl: editingExercise.gifUrl,
+        secondaryMuscles: editingExercise.secondaryMuscles,
+        instructions: editingExercise.instructions,
+      });
+      setSecondaryMusclesInput(editingExercise.secondaryMuscles.join(", "));
+      setInstructionsInput(editingExercise.instructions.join("\n"));
+    }
+  }, [editingExercise, form]);
 
   const filteredExercises = exercises.filter((exercise) => {
     const matchesSearch =
       exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      exercise.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || exercise.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+      exercise.target.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTarget =
+      selectedTarget === "all" || exercise.target === selectedTarget;
+    return matchesSearch && matchesTarget;
   });
 
-  const categories = ["Strength", "Cardio", "Core", "Flexibility", "Balance"];
+  const targets = Array.from(new Set(exercises.map((ex) => ex.target)));
 
-  const onSubmit = (values: z.infer<typeof exerciseSchema>) => {
+  const onSubmit = async (values: ExerciseFormData) => {
+    const exerciseData = {
+      ...values,
+      secondaryMuscles: values.secondaryMuscles,
+      instructions: values.instructions,
+    };
+
     if (editingExercise) {
-      setExercises(
-        exercises.map((ex) =>
-          ex.id === editingExercise.id ? { ...ex, ...values } : ex
-        )
+      await dispatch(
+        editExercise({ exerciseId: editingExercise._id!, exerciseData })
       );
       setEditingExercise(null);
     } else {
-      const newExercise: Exercise = {
-        id: Date.now().toString(),
-        ...values,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setExercises([...exercises, newExercise]);
+      await dispatch(addExercise(exerciseData));
     }
-    form.reset();
-    setIsAddDialogOpen(false);
-  };
 
-  const handleDelete = (id: string) => {
-    setExercises(exercises.filter((ex) => ex.id !== id));
+    if (!addError && !editError) {
+      form.reset();
+      setSecondaryMusclesInput("");
+      setInstructionsInput("");
+      setIsAddDialogOpen(false);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    }
   };
 
   const handleEdit = (exercise: Exercise) => {
     setEditingExercise(exercise);
-    form.reset(exercise);
     setIsAddDialogOpen(true);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Beginner":
-        return "bg-green-100 text-green-800";
-      case "Intermediate":
-        return "bg-yellow-100 text-yellow-800";
-      case "Advanced":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const handleAddNew = () => {
+    setEditingExercise(null);
+    form.reset();
+    setSecondaryMusclesInput("");
+    setInstructionsInput("");
+    setIsAddDialogOpen(true);
   };
+
+  const handleSecondaryMusclesChange = (value: string) => {
+    const muscles = value
+      .split(",")
+      .map((muscle) => muscle.trim())
+      .filter(Boolean);
+    form.setValue("secondaryMuscles", muscles);
+    setSecondaryMusclesInput(value);
+  };
+
+  const handleInstructionsChange = (value: string) => {
+    const instructions = value.split("\n").filter(Boolean);
+    form.setValue("instructions", instructions);
+    setInstructionsInput(value);
+  };
+
+  const getTargetColor = (target: string) => {
+    const colors = {
+      pectorals: "bg-red-100 text-red-800",
+      triceps: "bg-blue-100 text-blue-800",
+      biceps: "bg-green-100 text-green-800",
+      shoulders: "bg-purple-100 text-purple-800",
+      back: "bg-orange-100 text-orange-800",
+      core: "bg-yellow-100 text-yellow-800",
+      legs: "bg-indigo-100 text-indigo-800",
+    };
+    return colors[target as keyof typeof colors] || "bg-gray-100 text-gray-800";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading exercises...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -191,17 +253,12 @@ export default function ExercisesPage() {
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingExercise(null);
-                  form.reset();
-                }}
-              >
+              <Button onClick={handleAddNew}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Exercise
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingExercise ? "Edit Exercise" : "Add New Exercise"}
@@ -228,54 +285,32 @@ export default function ExercisesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="category"
+                      name="equipment"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>Equipment</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., bodyweight, dumbbell"
+                              {...field}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <FormField
                       control={form.control}
-                      name="difficulty"
+                      name="target"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Difficulty</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select difficulty" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Beginner">Beginner</SelectItem>
-                              <SelectItem value="Intermediate">
-                                Intermediate
-                              </SelectItem>
-                              <SelectItem value="Advanced">Advanced</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>Target Muscle</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., pectorals, triceps"
+                              {...field}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -283,48 +318,58 @@ export default function ExercisesPage() {
                   </div>
                   <FormField
                     control={form.control}
-                    name="description"
+                    name="gifUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>GIF URL</FormLabel>
                         <FormControl>
-                          <Textarea
-                            placeholder="Enter exercise description"
-                            {...field}
+                          <Input placeholder="Enter GIF URL" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="secondaryMuscles"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Secondary Muscles (comma-separated)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., triceps, shoulders, core"
+                            value={secondaryMusclesInput}
+                            onChange={(e) =>
+                              handleSecondaryMusclesChange(e.target.value)
+                            }
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="duration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 10 min" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="calories"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Calories</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 50" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="instructions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Instructions (one per line)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter instructions, one per line"
+                            value={instructionsInput}
+                            onChange={(e) =>
+                              handleInstructionsChange(e.target.value)
+                            }
+                            rows={4}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <div className="flex justify-end space-x-2">
                     <Button
                       type="button"
@@ -333,8 +378,13 @@ export default function ExercisesPage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">
-                      {editingExercise ? "Update" : "Add"} Exercise
+                    <Button type="submit" disabled={isAdding || isEditing}>
+                      {isAdding || isEditing
+                        ? "Saving..."
+                        : editingExercise
+                        ? "Update"
+                        : "Add"}{" "}
+                      Exercise
                     </Button>
                   </div>
                 </form>
@@ -343,6 +393,28 @@ export default function ExercisesPage() {
           </Dialog>
         </div>
       </motion.div>
+
+      {(error || addError || editError) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border border-red-200 rounded-md p-4"
+        >
+          <p className="text-red-800">{error || addError || editError}</p>
+        </motion.div>
+      )}
+
+      {showSuccessMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-green-50 border border-green-200 rounded-md p-4"
+        >
+          <p className="text-green-800">
+            Exercise {editingExercise ? "updated" : "added"} successfully!
+          </p>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -364,18 +436,18 @@ export default function ExercisesPage() {
                   />
                 </div>
                 <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
+                  value={selectedTarget}
+                  onValueChange={setSelectedTarget}
                 >
                   <SelectTrigger className="w-40">
                     <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Category" />
+                    <SelectValue placeholder="Target" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    <SelectItem value="all">All Targets</SelectItem>
+                    {targets.map((target) => (
+                      <SelectItem key={target} value={target}>
+                        {target}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -388,33 +460,54 @@ export default function ExercisesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Difficulty</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Calories</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>Equipment</TableHead>
+                  <TableHead>Target</TableHead>
+                  <TableHead>Secondary Muscles</TableHead>
+                  <TableHead>Instructions</TableHead>
                   <TableHead className="w-[50px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredExercises.map((exercise) => (
-                  <TableRow key={exercise.id}>
+                  <TableRow key={exercise._id}>
                     <TableCell className="font-medium">
-                      {exercise.name}
+                      <div className="flex items-center space-x-2">
+                        <Play className="h-4 w-4 text-muted-foreground" />
+                        <span>{exercise.name}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{exercise.category}</Badge>
+                      <div className="flex items-center space-x-1">
+                        <Dumbbell className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{exercise.equipment}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={getDifficultyColor(exercise.difficulty)}
-                      >
-                        {exercise.difficulty}
+                      <Badge className={getTargetColor(exercise.target)}>
+                        <Target className="mr-1 h-3 w-3" />
+                        {exercise.target}
                       </Badge>
                     </TableCell>
-                    <TableCell>{exercise.duration}</TableCell>
-                    <TableCell>{exercise.calories} cal</TableCell>
-                    <TableCell>{exercise.createdAt}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {exercise.secondaryMuscles.map((muscle, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {muscle}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {exercise.instructions[0]}...
+                        </p>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -428,13 +521,6 @@ export default function ExercisesPage() {
                           >
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(exercise.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

@@ -34,11 +34,11 @@ export default function LayoutProvider({ children }: LayoutProviderProps) {
   // Prevent hydration mismatch and ensure stable rendering
   if (!mounted) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen overflow-x-hidden">
         <div className="hidden">
           <Header />
         </div>
-        <main>{children}</main>
+        <main className="overflow-x-hidden">{children}</main>
         <div className="hidden">
           <Footer />
         </div>
@@ -47,11 +47,11 @@ export default function LayoutProvider({ children }: LayoutProviderProps) {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <div className={shouldHideHeaderFooter ? "hidden" : "block"}>
         <Header />
       </div>
-      <main>{children}</main>
+      <main className="overflow-x-hidden">{children}</main>
       <div className={shouldHideHeaderFooter ? "hidden" : "block"}>
         <Footer />
       </div>

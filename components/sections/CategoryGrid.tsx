@@ -1,43 +1,47 @@
-"use client"
+"use client";
 
-import { motion, useInView } from "framer-motion"
-import { useRef } from "react"
-import Image from "next/image"
-import Link from "next/link"
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function CategoryGrid() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   const categories = [
     {
       title: "Accessories",
       description: "Premium gear for every workout",
-      image: "https://images.unsplash.com/photo-1685633225097-10c8f8e6e889?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NDJ8fEFjY2Vzc29yaWVzJTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
+      image:
+        "https://images.unsplash.com/photo-1685633225097-10c8f8e6e889?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NDJ8fEFjY2Vzc29yaWVzJTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
       href: "/accessories",
     },
     {
       title: "Equipment",
       description: "Professional-grade fitness equipment",
-      image: "https://images.unsplash.com/photo-1597076545399-91a3ff0e71b3?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8RXF1aXBtZW50JTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
+      image:
+        "https://images.unsplash.com/photo-1597076545399-91a3ff0e71b3?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8RXF1aXBtZW50JTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
       href: "/equipment",
     },
     {
       title: "Nutrition",
       description: "Fuel your body with the best",
-      image: "https://images.unsplash.com/photo-1511909525232-61113c912358?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8TnV0cml0aW9uJTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
+      image:
+        "https://images.unsplash.com/photo-1511909525232-61113c912358?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8TnV0cml0aW9uJTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
       href: "/nutrition",
     },
     {
       title: "Apparel",
       description: "Comfortable and stylish activewear",
-      image: "https://images.unsplash.com/photo-1619037961380-5ab533fc7129?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fEFjY2Vzc29yaWVzJTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
+      image:
+        "https://images.unsplash.com/photo-1619037961380-5ab533fc7129?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fEFjY2Vzc29yaWVzJTIwZml0bmVzc3xlbnwwfHwwfHx8MA%3D%3D",
       href: "/apparel",
     },
-  ]
+  ];
 
   return (
-    <section ref={ref} className="py-20">
+    <section ref={ref} className="py-20 overflow-x-hidden">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -45,15 +49,15 @@ export default function CategoryGrid() {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 px-2">
             Shop by <span className="gradient-text">Category</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
             Discover everything you need to elevate your fitness journey
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 px-2 sm:px-0">
           {categories.map((category, index) => (
             <motion.div
               key={category.title}
@@ -81,7 +85,9 @@ export default function CategoryGrid() {
                     whileHover={{ y: 0, opacity: 1 }}
                     className="absolute bottom-0 left-0 right-0 p-8 text-white"
                   >
-                    <h3 className="text-2xl font-bold mb-2">{category.title}</h3>
+                    <h3 className="text-2xl font-bold mb-2">
+                      {category.title}
+                    </h3>
                     <p className="text-gray-200">{category.description}</p>
                   </motion.div>
                 </motion.div>
@@ -91,5 +97,5 @@ export default function CategoryGrid() {
         </div>
       </div>
     </section>
-  )
+  );
 }

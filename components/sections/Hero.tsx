@@ -40,7 +40,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-5xl md:text-7xl font-bold mb-6 leading-tight"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight px-2"
         >
           Shaping the <span className="gradient-text">Future</span> of Health
         </motion.h1>
@@ -49,7 +49,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-xl md:text-2xl mb-8 text-gray-200"
+          className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 text-gray-200 px-2"
         >
           Transform your fitness journey with premium equipment, expert
           programs, and personalized nutrition guidance.
@@ -59,23 +59,23 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-2"
         >
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center space-x-2 bg-black hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition-colors"
+            className="flex items-center space-x-2 bg-black hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold transition-colors w-full sm:w-auto justify-center"
           >
             <span>Start Your Journey</span>
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center space-x-2 glass-effect text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-white/20 transition-colors"
+            className="flex items-center space-x-2 glass-effect text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold hover:bg-white/20 transition-colors w-full sm:w-auto justify-center"
           >
-            <Play className="w-5 h-5" />
+            <Play className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Watch Demo</span>
           </motion.button>
         </motion.div>
@@ -92,7 +92,7 @@ export default function Hero() {
           repeat: Number.POSITIVE_INFINITY,
           ease: "easeInOut",
         }}
-        className="absolute top-20 right-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl"
+        className="absolute top-20 right-4 sm:right-10 w-16 h-16 sm:w-20 sm:h-20 bg-blue-500/20 rounded-full blur-xl hidden sm:block"
       />
 
       <motion.div
@@ -105,7 +105,7 @@ export default function Hero() {
           repeat: Number.POSITIVE_INFINITY,
           ease: "easeInOut",
         }}
-        className="absolute bottom-20 left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl"
+        className="absolute bottom-20 left-4 sm:left-10 w-24 h-24 sm:w-32 sm:h-32 bg-purple-500/20 rounded-full blur-xl hidden sm:block"
       />
     </section>
   );

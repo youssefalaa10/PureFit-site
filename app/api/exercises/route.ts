@@ -56,30 +56,89 @@ export async function POST(request: NextRequest) {
     // Get token from request headers
     const authHeader = request.headers.get("authorization");
 
-    console.log(
-      "POST /api/exercises - Request body:",
-      JSON.stringify(body, null, 2)
-    );
-    console.log(
-      "POST /api/exercises - Auth header:",
-      authHeader ? "Present" : "Missing"
-    );
+    // Log request details (remove in production if needed)
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "POST /api/exercises - Request body:",
+        JSON.stringify(body, null, 2)
+      );
+      console.log(
+        "POST /api/exercises - Auth header:",
+        authHeader ? "Present" : "Missing"
+      );
+    }
+
+    // Ensure we have required fields
+    if (!body.categoryId) {
+      return NextResponse.json(
+        { error: "categoryId is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Authorization token is required" },
+        { status: 401 }
+      );
+    }
+
+    // Prepare the request body - match the format from the working example
+    // The backend may need id as a number, so we'll generate one if not provided
+    const requestBody: any = {
+      categoryId: body.categoryId,
+      name: body.name,
+      equipment: body.equipment,
+      target: body.target,
+      gifUrl: body.gifUrl,
+      secondaryMuscles: Array.isArray(body.secondaryMuscles)
+        ? body.secondaryMuscles
+        : [],
+      instructions: Array.isArray(body.instructions) ? body.instructions : [],
+    };
+
+    // Add id if provided, otherwise generate a unique number
+    if (body.id !== undefined && body.id !== null) {
+      requestBody.id =
+        typeof body.id === "number" ? body.id : parseInt(body.id);
+    } else {
+      // Generate a unique numeric ID (using timestamp + random number)
+      requestBody.id =
+        Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 1000);
+    }
+
+    // Only add _id if it's explicitly provided (backend will generate its own)
+    if (body._id) {
+      requestBody._id = body._id;
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "POST /api/exercises - Prepared request body:",
+        JSON.stringify(requestBody, null, 2)
+      );
+    }
 
     const response = await fetch(`${API_BASE_URL}/api/exercises`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(authHeader && { Authorization: authHeader }),
+        Authorization: authHeader,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
     });
 
-    console.log("POST /api/exercises - Response status:", response.status);
-    console.log("POST /api/exercises - Response ok:", response.ok);
+    if (process.env.NODE_ENV === "development") {
+      console.log("POST /api/exercises - Response status:", response.status);
+      console.log("POST /api/exercises - Response ok:", response.ok);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log("POST /api/exercises - Error response:", errorText);
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("POST /api/exercises - Error response:", errorText);
+      }
 
       let errorData;
       try {
@@ -95,13 +154,23 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log("POST /api/exercises - Success response:", data);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("POST /api/exercises - Success response:", data);
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Error adding exercise:", error);
-    console.error("Error stack:", error.stack);
+    if (error.stack) {
+      console.error("Error stack:", error.stack);
+    }
     return NextResponse.json(
-      { error: `Internal server error: ${error.message || "Unknown error"}` },
+      {
+        error: `Internal server error: ${error.message || "Unknown error"}`,
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }

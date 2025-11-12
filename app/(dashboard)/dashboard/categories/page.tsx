@@ -415,6 +415,7 @@ export default function CategoriesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Thumbnail</TableHead>
                   <TableHead>Program</TableHead>
                   <TableHead>Workout</TableHead>
                   <TableHead>Duration</TableHead>
@@ -431,6 +432,27 @@ export default function CategoriesPage() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => handleCategoryClick(category)}
                   >
+                    <TableCell>
+                      {category.thumbnail ? (
+                        <div className="relative w-16 h-16 rounded overflow-hidden bg-muted">
+                          <img
+                            src={category.thumbnail}
+                            alt={category.programName || "Category thumbnail"}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display =
+                                "none";
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground">
+                            No image
+                          </span>
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {category.programName || "N/A"}
                     </TableCell>

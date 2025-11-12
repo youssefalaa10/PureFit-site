@@ -514,6 +514,7 @@ export default function ExercisesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>GIF</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Equipment</TableHead>
                   <TableHead>Target</TableHead>
@@ -525,6 +526,25 @@ export default function ExercisesPage() {
               <TableBody>
                 {filteredExercises.map((exercise) => (
                   <TableRow key={exercise._id}>
+                    <TableCell>
+                      {exercise.gifUrl ? (
+                        <div className="relative w-20 h-20 rounded overflow-hidden bg-muted">
+                          <img
+                            src={exercise.gifUrl}
+                            alt={exercise.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display =
+                                "none";
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 rounded bg-muted flex items-center justify-center">
+                          <Play className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
                         <Play className="h-4 w-4 text-muted-foreground" />

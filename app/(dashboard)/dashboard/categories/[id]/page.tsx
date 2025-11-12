@@ -1,38 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
-  Plus,
-  Search,
-  Filter,
+  ArrowLeft,
   Edit,
-  Trash2,
-  MoreHorizontal,
   Clock,
   Flame,
   Target,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -48,28 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   fetchCategories,
-  addCategory,
   selectCategories,
   selectCategoriesLoading,
-  selectCategoriesError,
-  selectIsAddingCategory,
-  selectAddCategoryError,
-  clearErrors,
-  clearAddError,
-  clearFetchError,
   Category,
 } from "@/lib/slices/categoriesSlice";
 
@@ -93,19 +63,22 @@ const categoryScheme = z.object({
 
 type CategoryFormData = z.infer<typeof categoryScheme>;
 
-export default function CategoriesPage() {
+export default function CategoryDetailsPage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedLevel, setSelectedLevel] = useState("all");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const params = useParams();
+  const categoryId = params.id as string;
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [previewImageError, setPreviewImageError] = useState(false);
 
   const dispatch = useAppDispatch();
   const categories = useAppSelector(selectCategories);
   const isLoading = useAppSelector(selectCategoriesLoading);
-  const error = useAppSelector(selectCategoriesError);
-  const isAdding = useAppSelector(selectIsAddingCategory);
-  const addError = useAppSelector(selectAddCategoryError);
+
+  const category = categories.find(
+    (cat) => cat.id === categoryId || (cat as any)._id === categoryId
+  );
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categoryScheme),
@@ -131,67 +104,25 @@ export default function CategoriesPage() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (error) {
-      dispatch(clearFetchError());
+    if (category && !isEditMode) {
+      form.reset({
+        thumbnail: category.thumbnail || "",
+        programName: category.programName || "",
+        workoutName: category.workoutName || "",
+        timeOf_FullProgram: category.timeOf_FullProgram || "",
+        level: category.level || "Beginner",
+        burnedCalories: category.burnedCalories || 0,
+        exercises: category.exercises || [],
+      });
     }
-  }, [error, dispatch]);
-
-  useEffect(() => {
-    if (addError) {
-      dispatch(clearAddError());
-    }
-  }, [addError, dispatch]);
-
-  const filteredCategories = categories.filter((category) => {
-    const matchesSearch =
-      (category.programName?.toLowerCase() || "").includes(
-        searchTerm.toLowerCase()
-      ) ||
-      (category.workoutName?.toLowerCase() || "").includes(
-        searchTerm.toLowerCase()
-      );
-    const matchesLevel =
-      selectedLevel === "all" || category.level === selectedLevel;
-    return matchesSearch && matchesLevel;
-  });
+  }, [category, isEditMode, form]);
 
   const levels = ["Beginner", "Intermediate", "Advanced"];
 
   const onSubmit = (values: CategoryFormData) => {
-    if (editingCategory) {
-      // Handle edit (not implemented in API yet)
-      console.log("Edit functionality not implemented");
-    } else {
-      dispatch(addCategory(values));
-      form.reset();
-      setIsAddDialogOpen(false);
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    // Handle delete (not implemented in API yet)
-    console.log("Delete functionality not implemented");
-  };
-
-  const handleEdit = (category: Category) => {
-    setEditingCategory(category);
-    form.reset({
-      thumbnail: category.thumbnail || "",
-      programName: category.programName || "",
-      workoutName: category.workoutName || "",
-      timeOf_FullProgram: category.timeOf_FullProgram || "",
-      level: category.level || "Beginner",
-      burnedCalories: category.burnedCalories || 0,
-      exercises: category.exercises || [],
-    });
-    setIsAddDialogOpen(true);
-  };
-
-  const handleCategoryClick = (category: Category) => {
-    const categoryId = category.id || (category as any)._id;
-    if (categoryId) {
-      router.push(`/dashboard/categories/${categoryId}`);
-    }
+    // Handle edit (not implemented in API yet)
+    console.log("Edit functionality not implemented", values);
+    setIsEditMode(false);
   };
 
   const getLevelColor = (level: string) => {
@@ -233,6 +164,27 @@ export default function CategoriesPage() {
     );
   }
 
+  if (!category) {
+    return (
+      <div className="space-y-6">
+        <Button
+          variant="ghost"
+          onClick={() => router.push("/dashboard/categories")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Categories
+        </Button>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8 text-muted-foreground">
+              Category not found
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -241,30 +193,174 @@ export default function CategoriesPage() {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
-            <p className="text-muted-foreground">
-              Manage your workout categories and programs
-            </p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/dashboard/categories")}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {category.programName || "Category Details"}
+              </h1>
+              <p className="text-muted-foreground">
+                View and edit category information
+              </p>
+            </div>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingCategory(null);
-                  form.reset();
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Category
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCategory ? "Edit Category" : "Add New Category"}
-                </DialogTitle>
-              </DialogHeader>
+          {!isEditMode && (
+            <Button onClick={() => setIsEditMode(true)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Category
+            </Button>
+          )}
+        </div>
+      </motion.div>
+
+      {!isEditMode ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                {/* Thumbnail */}
+                {category.thumbnail && !imageError ? (
+                  <div className="relative w-full h-96 rounded-lg overflow-hidden bg-muted">
+                    <Image
+                      src={category.thumbnail}
+                      alt={category.programName || "Category thumbnail"}
+                      fill
+                      className="object-cover"
+                      onError={() => setImageError(true)}
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="relative w-full h-96 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <p>No thumbnail available</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Category Information */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Program Name
+                    </label>
+                    <p className="text-lg font-semibold mt-1">
+                      {category.programName || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Workout Name
+                    </label>
+                    <p className="text-lg font-semibold mt-1">
+                      {category.workoutName || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Duration
+                    </label>
+                    <div className="flex items-center mt-1">
+                      <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                      <p className="text-lg">
+                        {category.timeOf_FullProgram || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Level
+                    </label>
+                    <div className="mt-1">
+                      <Badge
+                        className={getLevelColor(category.level || "Unknown")}
+                      >
+                        {category.level || "Unknown"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Calories Burned
+                    </label>
+                    <div className="flex items-center mt-1">
+                      <Flame className="mr-2 h-4 w-4 text-orange-500" />
+                      <p className="text-lg">
+                        {category.burnedCalories || 0} cal
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Total Exercises
+                    </label>
+                    <div className="flex items-center mt-1">
+                      <Target className="mr-2 h-4 w-4 text-blue-500" />
+                      <p className="text-lg">
+                        {category.exercises?.length || 0} exercises
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Exercises List */}
+                {category.exercises && category.exercises.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                      Exercises
+                    </label>
+                    <div className="space-y-3">
+                      {category.exercises.map((exercise, index) => (
+                        <Card key={index}>
+                          <CardContent className="pt-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-lg">
+                                  {index + 1}. {exercise.name}
+                                </h4>
+                                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                  <div className="flex items-center">
+                                    <Clock className="mr-1 h-3 w-3" />
+                                    {exercise.duration}
+                                  </div>
+                                  <div className="flex items-center">
+                                    <Flame className="mr-1 h-3 w-3 text-orange-500" />
+                                    {exercise.caloriesBurned} cal
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit Category</CardTitle>
+            </CardHeader>
+            <CardContent>
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
@@ -277,9 +373,35 @@ export default function CategoriesPage() {
                       <FormItem>
                         <FormLabel>Thumbnail URL</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter thumbnail URL" {...field} />
+                          <Input
+                            placeholder="Enter thumbnail URL"
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              setPreviewImageError(false);
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
+                        {field.value && !previewImageError && (
+                          <div className="relative w-full h-48 rounded-lg overflow-hidden mt-2 bg-muted">
+                            <Image
+                              src={field.value}
+                              alt="Thumbnail preview"
+                              fill
+                              className="object-cover"
+                              onError={() => setPreviewImageError(true)}
+                              unoptimized
+                            />
+                          </div>
+                        )}
+                        {field.value && previewImageError && (
+                          <div className="relative w-full h-48 rounded-lg overflow-hidden mt-2 bg-muted flex items-center justify-center">
+                            <p className="text-sm text-muted-foreground">
+                              Invalid image URL
+                            </p>
+                          </div>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -470,162 +592,37 @@ export default function CategoriesPage() {
                     ))}
                   </div>
 
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end space-x-2 pt-4 border-t">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setIsAddDialogOpen(false)}
+                      onClick={() => {
+                        setIsEditMode(false);
+                        setPreviewImageError(false);
+                        if (category) {
+                          form.reset({
+                            thumbnail: category.thumbnail || "",
+                            programName: category.programName || "",
+                            workoutName: category.workoutName || "",
+                            timeOf_FullProgram:
+                              category.timeOf_FullProgram || "",
+                            level: category.level || "Beginner",
+                            burnedCalories: category.burnedCalories || 0,
+                            exercises: category.exercises || [],
+                          });
+                        }
+                      }}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={isAdding}>
-                      {isAdding
-                        ? "Adding..."
-                        : editingCategory
-                        ? "Update"
-                        : "Add"}{" "}
-                      Category
-                    </Button>
+                    <Button type="submit">Update Category</Button>
                   </div>
                 </form>
               </Form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Categories Database</CardTitle>
-              <div className="flex items-center space-x-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search categories..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 w-64"
-                  />
-                </div>
-                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                  <SelectTrigger className="w-40">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Levels</SelectItem>
-                    {levels.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600">{error}</p>
-              </div>
-            )}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Program</TableHead>
-                  <TableHead>Workout</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Calories</TableHead>
-                  <TableHead>Exercises</TableHead>
-                  <TableHead className="w-[50px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCategories.map((category) => (
-                  <TableRow
-                    key={category.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleCategoryClick(category)}
-                  >
-                    <TableCell className="font-medium">
-                      {category.programName || "N/A"}
-                    </TableCell>
-                    <TableCell>{category.workoutName || "N/A"}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {category.timeOf_FullProgram || "N/A"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={getLevelColor(category.level || "Unknown")}
-                      >
-                        {category.level || "Unknown"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Flame className="mr-2 h-4 w-4 text-orange-500" />
-                        {category.burnedCalories || 0} cal
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Target className="mr-2 h-4 w-4 text-blue-500" />
-                        {category.exercises?.length || 0} exercises
-                      </div>
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(category);
-                            }}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(category.id!);
-                            }}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {filteredCategories.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No categories found matching your criteria.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
 }

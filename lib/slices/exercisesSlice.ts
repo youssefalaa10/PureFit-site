@@ -16,7 +16,8 @@ export interface Exercise {
 }
 
 export interface ExercisesState {
-  exercises: Exercise[];
+  // Map of categoryId -> Exercise[]
+  exercises: Record<string, Exercise[]>;
   isLoading: boolean;
   error: string | null;
   isAdding: boolean;
@@ -40,20 +41,13 @@ export const fetchExercises = createAsyncThunk(
     try {
       const token = getToken();
 
-      if (!token) {
-        return rejectWithValue("No authentication token found");
-      }
-
-      const response = await fetch(
-        `${API_ENDPOINTS.EXERCISES_BY_CATEGORY}?categoryId=${categoryId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_ENDPOINTS.EXERCISES}/${categoryId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
       const data = await response.json();
 
@@ -61,7 +55,7 @@ export const fetchExercises = createAsyncThunk(
         return rejectWithValue(data.message || "Failed to fetch exercises");
       }
 
-      return data;
+      return { categoryId, exercises: data as Exercise[] };
     } catch (error) {
       return rejectWithValue("Network error occurred");
     }
@@ -74,15 +68,15 @@ export const addExercise = createAsyncThunk(
     try {
       const token = getToken();
 
-      if (!token) {
-        return rejectWithValue("No authentication token found");
+      if (!exerciseData.categoryId) {
+        return rejectWithValue("categoryId is required to add an exercise");
       }
 
       const response = await fetch(API_ENDPOINTS.EXERCISES, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(exerciseData),
       });
@@ -93,7 +87,7 @@ export const addExercise = createAsyncThunk(
         return rejectWithValue(data.message || "Failed to add exercise");
       }
 
-      return data;
+      return data as Exercise;
     } catch (error) {
       return rejectWithValue("Network error occurred");
     }
@@ -112,15 +106,11 @@ export const editExercise = createAsyncThunk(
     try {
       const token = getToken();
 
-      if (!token) {
-        return rejectWithValue("No authentication token found");
-      }
-
       const response = await fetch(`${API_ENDPOINTS.EXERCISES}/${exerciseId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(exerciseData),
       });
@@ -131,7 +121,7 @@ export const editExercise = createAsyncThunk(
         return rejectWithValue(data.message || "Failed to edit exercise");
       }
 
-      return { id: exerciseId, data };
+      return data as Exercise;
     } catch (error) {
       return rejectWithValue("Network error occurred");
     }
@@ -140,7 +130,7 @@ export const editExercise = createAsyncThunk(
 
 // Initial state
 const initialState: ExercisesState = {
-  exercises: [],
+  exercises: {},
   isLoading: false,
   error: null,
   isAdding: false,
@@ -178,7 +168,11 @@ const exercisesSlice = createSlice({
       })
       .addCase(fetchExercises.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.exercises = action.payload;
+        const { categoryId, exercises } = action.payload as {
+          categoryId: string;
+          exercises: Exercise[];
+        };
+        state.exercises[categoryId] = exercises;
         state.error = null;
       })
       .addCase(fetchExercises.rejected, (state, action) => {
@@ -192,7 +186,12 @@ const exercisesSlice = createSlice({
       })
       .addCase(addExercise.fulfilled, (state, action) => {
         state.isAdding = false;
-        state.exercises.push(action.payload);
+        const created = action.payload as Exercise;
+        const categoryId = created.categoryId as string;
+        if (!state.exercises[categoryId]) {
+          state.exercises[categoryId] = [];
+        }
+        state.exercises[categoryId].push(created);
         state.addError = null;
       })
       .addCase(addExercise.rejected, (state, action) => {
@@ -206,14 +205,43 @@ const exercisesSlice = createSlice({
       })
       .addCase(editExercise.fulfilled, (state, action) => {
         state.isEditing = false;
-        const index = state.exercises.findIndex(
-          (ex) => ex._id === action.payload.id
-        );
-        if (index !== -1) {
-          state.exercises[index] = {
-            ...state.exercises[index],
-            ...action.payload.data,
-          };
+        const updated = action.payload as Exercise;
+        const updatedId = updated._id || updated.id?.toString();
+        if (!updatedId) {
+          state.editError = null;
+          return;
+        }
+        // Find and replace in whichever category currently holds this exercise
+        let foundCategoryId: string | null = null;
+        for (const [categoryId, list] of Object.entries(state.exercises)) {
+          const idx = list.findIndex(
+            (ex) => (ex._id || ex.id?.toString()) === updatedId
+          );
+          if (idx !== -1) {
+            foundCategoryId = categoryId;
+            // If category stays the same, replace in place
+            list[idx] = { ...list[idx], ...updated };
+            break;
+          }
+        }
+        // If not found but the updated object has a categoryId, ensure it exists in that category
+        const targetCategoryId =
+          (updated.categoryId as string) || foundCategoryId;
+        if (targetCategoryId) {
+          if (!state.exercises[targetCategoryId]) {
+            state.exercises[targetCategoryId] = [];
+          }
+          const targetIdx = state.exercises[targetCategoryId].findIndex(
+            (ex) => (ex._id || ex.id?.toString()) === updatedId
+          );
+          if (targetIdx === -1) {
+            state.exercises[targetCategoryId].push(updated);
+          } else {
+            state.exercises[targetCategoryId][targetIdx] = {
+              ...state.exercises[targetCategoryId][targetIdx],
+              ...updated,
+            };
+          }
         }
         state.editError = null;
       })
@@ -228,7 +256,11 @@ export const { clearErrors, clearAddError, clearEditError, clearFetchError } =
   exercisesSlice.actions;
 
 // Selectors
-export const selectExercises = (state: RootState) => state.exercises.exercises;
+export const selectExercisesState = (state: RootState) =>
+  state.exercises.exercises;
+export const selectExercisesByCategory =
+  (categoryId?: string) => (state: RootState) =>
+    categoryId ? state.exercises.exercises[categoryId] || [] : [];
 export const selectExercisesLoading = (state: RootState) =>
   state.exercises.isLoading;
 export const selectExercisesError = (state: RootState) => state.exercises.error;

@@ -63,7 +63,7 @@ import {
   addExercise,
   editExercise,
   clearErrors,
-  selectExercises,
+  selectExercisesByCategory,
   selectExercisesLoading,
   selectExercisesError,
   selectIsAddingExercise,
@@ -72,6 +72,10 @@ import {
   selectEditExerciseError,
   type Exercise,
 } from "@/lib/slices/exercisesSlice";
+import {
+  fetchCategories,
+  selectCategories,
+} from "@/lib/slices/categoriesSlice";
 import { AppDispatch } from "@/lib/store";
 
 const exerciseSchema = z.object({
@@ -89,12 +93,11 @@ const exerciseSchema = z.object({
 
 type ExerciseFormData = z.infer<typeof exerciseSchema>;
 
-// Mock category ID for now - in a real app, this would come from the category selection
-const MOCK_CATEGORY_ID = "670a36f16e468473ea13f948";
+// Exercises are scoped by selected category
 
 export default function ExercisesPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const exercises = useSelector(selectExercises);
+  const categories = useSelector(selectCategories);
   const isLoading = useSelector(selectExercisesLoading);
   const error = useSelector(selectExercisesError);
   const isAdding = useSelector(selectIsAddingExercise);
@@ -109,6 +112,9 @@ export default function ExercisesPage() {
   const [secondaryMusclesInput, setSecondaryMusclesInput] = useState("");
   const [instructionsInput, setInstructionsInput] = useState("");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    string | undefined
+  >(undefined);
 
   const form = useForm<ExerciseFormData>({
     resolver: zodResolver(exerciseSchema),
@@ -122,9 +128,25 @@ export default function ExercisesPage() {
     },
   });
 
+  // Load categories for selection on mount
   useEffect(() => {
-    dispatch(fetchExercises(MOCK_CATEGORY_ID));
+    dispatch(fetchCategories());
   }, [dispatch]);
+
+  // When categories load, select the first by default (if none selected)
+  useEffect(() => {
+    if (!selectedCategoryId && categories.length > 0) {
+      const firstId = (categories[0] as any).id ?? (categories[0] as any)._id;
+      if (firstId) setSelectedCategoryId(firstId as string);
+    }
+  }, [categories, selectedCategoryId]);
+
+  // Fetch exercises when category changes
+  useEffect(() => {
+    if (selectedCategoryId) {
+      dispatch(fetchExercises(selectedCategoryId));
+    }
+  }, [dispatch, selectedCategoryId]);
 
   // Clear errors when component unmounts
   useEffect(() => {
@@ -148,7 +170,11 @@ export default function ExercisesPage() {
     }
   }, [editingExercise, form]);
 
-  const filteredExercises = exercises.filter((exercise) => {
+  const exercisesForCategory = useSelector(
+    selectExercisesByCategory(selectedCategoryId)
+  );
+
+  const filteredExercises = exercisesForCategory.filter((exercise) => {
     const matchesSearch =
       exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exercise.target.toLowerCase().includes(searchTerm.toLowerCase());
@@ -157,13 +183,16 @@ export default function ExercisesPage() {
     return matchesSearch && matchesTarget;
   });
 
-  const targets = Array.from(new Set(exercises.map((ex) => ex.target)));
+  const targets = Array.from(
+    new Set(exercisesForCategory.map((ex) => ex.target))
+  );
 
   const onSubmit = async (values: ExerciseFormData) => {
     const exerciseData = {
       ...values,
       secondaryMuscles: values.secondaryMuscles,
       instructions: values.instructions,
+      categoryId: selectedCategoryId,
     };
 
     if (editingExercise) {
@@ -251,48 +280,121 @@ export default function ExercisesPage() {
               Manage your exercise library and track your workouts
             </p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleAddNew}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Exercise
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingExercise ? "Edit Exercise" : "Add New Exercise"}
-                </DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Exercise Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter exercise name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedCategoryId}
+              onValueChange={(val) => setSelectedCategoryId(val)}
+            >
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => {
+                  const id = (cat as any).id ?? (cat as any)._id;
+                  return (
+                    <SelectItem key={id} value={id}>
+                      {cat.workoutName || cat.programName || id}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={handleAddNew} disabled={!selectedCategoryId}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Exercise
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingExercise ? "Edit Exercise" : "Add New Exercise"}
+                  </DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
                     <FormField
                       control={form.control}
-                      name="equipment"
+                      name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Equipment</FormLabel>
+                          <FormLabel>Exercise Name</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="e.g., bodyweight, dumbbell"
+                              placeholder="Enter exercise name"
                               {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="equipment"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Equipment</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., bodyweight, dumbbell"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="target"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Target Muscle</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., pectorals, triceps"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="gifUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>GIF URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter GIF URL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="secondaryMuscles"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Secondary Muscles (comma-separated)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., triceps, shoulders, core"
+                              value={secondaryMusclesInput}
+                              onChange={(e) =>
+                                handleSecondaryMusclesChange(e.target.value)
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -301,96 +403,49 @@ export default function ExercisesPage() {
                     />
                     <FormField
                       control={form.control}
-                      name="target"
+                      name="instructions"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Target Muscle</FormLabel>
+                          <FormLabel>Instructions (one per line)</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="e.g., pectorals, triceps"
-                              {...field}
+                            <Textarea
+                              placeholder="Enter instructions, one per line"
+                              value={instructionsInput}
+                              onChange={(e) =>
+                                handleInstructionsChange(e.target.value)
+                              }
+                              rows={4}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="gifUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>GIF URL</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter GIF URL" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="secondaryMuscles"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Secondary Muscles (comma-separated)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., triceps, shoulders, core"
-                            value={secondaryMusclesInput}
-                            onChange={(e) =>
-                              handleSecondaryMusclesChange(e.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="instructions"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Instructions (one per line)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter instructions, one per line"
-                            value={instructionsInput}
-                            onChange={(e) =>
-                              handleInstructionsChange(e.target.value)
-                            }
-                            rows={4}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsAddDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isAdding || isEditing}>
-                      {isAdding || isEditing
-                        ? "Saving..."
-                        : editingExercise
-                        ? "Update"
-                        : "Add"}{" "}
-                      Exercise
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsAddDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isAdding || isEditing || !selectedCategoryId}
+                      >
+                        {isAdding || isEditing
+                          ? "Saving..."
+                          : editingExercise
+                          ? "Update"
+                          : "Add"}{" "}
+                        Exercise
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </motion.div>
 

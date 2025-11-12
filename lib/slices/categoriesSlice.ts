@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../store";
-import { API_ENDPOINTS, STORAGE_KEYS } from "../constants";
+import { API_ENDPOINTS, STORAGE_KEYS, getApiEndpoint } from "../constants";
 
 // Types
 export interface Exercise {
@@ -42,7 +42,7 @@ export const fetchCategories = createAsyncThunk(
   "categories/fetchCategories",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(API_ENDPOINTS.CATEGORIES, {
+      const response = await fetch(getApiEndpoint(API_ENDPOINTS.CATEGORIES), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +83,7 @@ export const addCategory = createAsyncThunk(
         return rejectWithValue("No authentication token found");
       }
 
-      const response = await fetch(API_ENDPOINTS.CATEGORIES, {
+      const response = await fetch(getApiEndpoint(API_ENDPOINTS.CATEGORIES), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

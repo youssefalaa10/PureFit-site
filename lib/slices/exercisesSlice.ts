@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../store";
-import { API_ENDPOINTS, STORAGE_KEYS } from "../constants";
+import { API_ENDPOINTS, STORAGE_KEYS, getApiEndpoint } from "../constants";
 
 // Types
 export interface Exercise {
@@ -41,20 +41,31 @@ export const fetchExercises = createAsyncThunk(
     try {
       const token = getToken();
 
-      const response = await fetch(`${API_ENDPOINTS.EXERCISES}/${categoryId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      const data = await response.json();
+      const response = await fetch(
+        `${getApiEndpoint(API_ENDPOINTS.EXERCISES)}/${categoryId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
 
       if (!response.ok) {
-        return rejectWithValue(data.message || "Failed to fetch exercises");
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || "Failed to fetch exercises" };
+        }
+        return rejectWithValue(
+          errorData.message || "Failed to fetch exercises"
+        );
       }
 
+      const data = await response.json();
       return { categoryId, exercises: data as Exercise[] };
     } catch (error) {
       return rejectWithValue("Network error occurred");
@@ -72,7 +83,7 @@ export const addExercise = createAsyncThunk(
         return rejectWithValue("categoryId is required to add an exercise");
       }
 
-      const response = await fetch(API_ENDPOINTS.EXERCISES, {
+      const response = await fetch(getApiEndpoint(API_ENDPOINTS.EXERCISES), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -81,12 +92,18 @@ export const addExercise = createAsyncThunk(
         body: JSON.stringify(exerciseData),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        return rejectWithValue(data.message || "Failed to add exercise");
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || "Failed to add exercise" };
+        }
+        return rejectWithValue(errorData.message || "Failed to add exercise");
       }
 
+      const data = await response.json();
       return data as Exercise;
     } catch (error) {
       return rejectWithValue("Network error occurred");
@@ -106,21 +123,30 @@ export const editExercise = createAsyncThunk(
     try {
       const token = getToken();
 
-      const response = await fetch(`${API_ENDPOINTS.EXERCISES}/${exerciseId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(exerciseData),
-      });
-
-      const data = await response.json();
+      const response = await fetch(
+        `${getApiEndpoint(API_ENDPOINTS.EXERCISES)}/${exerciseId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(exerciseData),
+        }
+      );
 
       if (!response.ok) {
-        return rejectWithValue(data.message || "Failed to edit exercise");
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || "Failed to edit exercise" };
+        }
+        return rejectWithValue(errorData.message || "Failed to edit exercise");
       }
 
+      const data = await response.json();
       return data as Exercise;
     } catch (error) {
       return rejectWithValue("Network error occurred");

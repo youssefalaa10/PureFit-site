@@ -80,15 +80,6 @@ const categoryScheme = z.object({
   timeOf_FullProgram: z.string().min(1, "Time is required"),
   level: z.string().min(1, "Level is required"),
   burnedCalories: z.number().min(1, "Calories must be at least 1"),
-  exercises: z
-    .array(
-      z.object({
-        name: z.string().min(1, "Exercise name is required"),
-        duration: z.string().min(1, "Duration is required"),
-        caloriesBurned: z.number().min(1, "Calories burned must be at least 1"),
-      })
-    )
-    .min(1, "At least one exercise is required"),
 });
 
 type CategoryFormData = z.infer<typeof categoryScheme>;
@@ -116,13 +107,6 @@ export default function CategoriesPage() {
       timeOf_FullProgram: "",
       level: "",
       burnedCalories: 0,
-      exercises: [
-        {
-          name: "",
-          duration: "",
-          caloriesBurned: 0,
-        },
-      ],
     },
   });
 
@@ -162,7 +146,8 @@ export default function CategoriesPage() {
       // Handle edit (not implemented in API yet)
       console.log("Edit functionality not implemented");
     } else {
-      dispatch(addCategory(values));
+      // Add empty exercises array as required by API
+      dispatch(addCategory({ ...values, exercises: [] }));
       form.reset();
       setIsAddDialogOpen(false);
     }
@@ -182,7 +167,6 @@ export default function CategoriesPage() {
       timeOf_FullProgram: category.timeOf_FullProgram || "",
       level: category.level || "Beginner",
       burnedCalories: category.burnedCalories || 0,
-      exercises: category.exercises || [],
     });
     setIsAddDialogOpen(true);
   };
@@ -204,24 +188,6 @@ export default function CategoriesPage() {
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const addExercise = () => {
-    const currentExercises = form.getValues("exercises");
-    form.setValue("exercises", [
-      ...currentExercises,
-      { name: "", duration: "", caloriesBurned: 0 },
-    ]);
-  };
-
-  const removeExercise = (index: number) => {
-    const currentExercises = form.getValues("exercises");
-    if (currentExercises.length > 1) {
-      form.setValue(
-        "exercises",
-        currentExercises.filter((_, i) => i !== index)
-      );
     }
   };
 
@@ -378,96 +344,6 @@ export default function CategoriesPage() {
                         </FormItem>
                       )}
                     />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Exercises</FormLabel>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addExercise}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Exercise
-                      </Button>
-                    </div>
-
-                    {form.watch("exercises").map((_, index) => (
-                      <div
-                        key={index}
-                        className="border rounded-lg p-4 space-y-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Exercise {index + 1}</h4>
-                          {form.watch("exercises").length > 1 && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeExercise(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <FormField
-                            control={form.control}
-                            name={`exercises.${index}.name`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Name</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="Exercise name"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name={`exercises.${index}.duration`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Duration</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="e.g., 10 minutes"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name={`exercises.${index}.caloriesBurned`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Calories</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="e.g., 100"
-                                    {...field}
-                                    onChange={(e) =>
-                                      field.onChange(Number(e.target.value))
-                                    }
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                    ))}
                   </div>
 
                   <div className="flex justify-end space-x-2">

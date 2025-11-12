@@ -14,14 +14,14 @@ export interface AuthState {
   error: string | null;
 }
 
-import { API_ENDPOINTS, STORAGE_KEYS } from "../constants";
+import { API_ENDPOINTS, STORAGE_KEYS, getApiEndpoint } from "../constants";
 
 // Async thunks
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      const response = await fetch(API_ENDPOINTS.LOGIN, {
+      const response = await fetch(getApiEndpoint(API_ENDPOINTS.LOGIN), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

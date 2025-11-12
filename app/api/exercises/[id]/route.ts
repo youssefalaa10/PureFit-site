@@ -3,11 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 const API_BASE_URL = "https://fit-pro-app.glitch.me";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const categoryId = params.id;
+
+    // Get token from request headers
+    const authHeader = request.headers.get("authorization");
 
     const response = await fetch(
       `${API_BASE_URL}/api/exercises/${categoryId}`,
@@ -15,12 +18,15 @@ export async function GET(
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          ...(authHeader && { Authorization: authHeader }),
         },
       }
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to fetch exercises" }));
       return NextResponse.json(
         { error: errorData.message || "Failed to fetch exercises" },
         { status: response.status }
@@ -46,19 +52,25 @@ export async function PUT(
     const body = await request.json();
     const exerciseId = params.id;
 
+    // Get token from request headers
+    const authHeader = request.headers.get("authorization");
+
     const response = await fetch(
       `${API_BASE_URL}/api/exercises/${exerciseId}`,
       {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          ...(authHeader && { Authorization: authHeader }),
         },
         body: JSON.stringify(body),
       }
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to edit exercise" }));
       return NextResponse.json(
         { error: errorData.message || "Failed to edit exercise" },
         { status: response.status }
